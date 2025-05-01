@@ -144,7 +144,7 @@ void loop()
         }
         else
         {
-          display.showText("Server Down");
+          // display.showText("Server Down");
         }
       }
       else
@@ -244,7 +244,6 @@ void loop()
   }
 
   pump.run();
-  display.updateStatus(pump.isEnabled(), stepsPerML > 0 ? pump.getSpeed() / stepsPerML * 60 : 0);
 }
 
 void syncData()
