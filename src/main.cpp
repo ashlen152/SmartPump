@@ -30,7 +30,7 @@ int menuIndex = 0;
 unsigned long lastButtonPressTime = 0;
 float stepsPerML = 0;
 int stepsPerSecond = 2000;
-const char *menuItems[] = {"Calibrate Drop", "Settings Info"};
+const char *menuItems[] = {"Calibrate Drop", "Settings Info", "Save Speed"};
 const int menuItemCount = sizeof(menuItems) / sizeof(menuItems[0]);
 unsigned long lastWiFiRetryTime = 0;
 unsigned long lastSyncTime = 0;
@@ -67,12 +67,24 @@ void setup()
 
   display.begin();
   pump.begin();
+
+  // Load stepsPerML and speed from EEPROM
   EEPROM.get(EEPROM_ADDR, stepsPerML);
+  float savedSpeed = 0;
+  EEPROM.get(EEPROM_ADDR + sizeof(stepsPerML), savedSpeed);
+
   if (isnan(stepsPerML) || stepsPerML <= 0)
     stepsPerML = 0;
   stepsPerSecond = stepsPerML > 0 ? (int)(stepsPerML / 60) : 2000;
   pump.setStepsPerML(stepsPerML);
   pump.setSpeedStep(stepsPerSecond);
+
+  if (!isnan(savedSpeed) && savedSpeed > 0)
+  {
+    pump.setSpeed(savedSpeed);
+    Serial.print("Loaded saved speed from EEPROM: ");
+    Serial.println(savedSpeed);
+  }
 
   lastWiFiRetryTime = millis();
   display.showText("WiFi Connecting...");
@@ -273,6 +285,16 @@ void runMenuSelection()
     display.showSettingsInfo(pump.getSpeed(), pump.getStepsPerML(), pump.getSpeedStep());
     showingSettings = true;
     lastSettingsDisplayTime = millis();
+  }
+  else if (menuIndex == 2) // Save Speed
+  {
+    float currentSpeed = pump.getSpeed();
+    EEPROM.put(EEPROM_ADDR + sizeof(stepsPerML), currentSpeed); // Store speed after stepsPerML
+    EEPROM.commit();
+    Serial.print("Saved speed to EEPROM: ");
+    Serial.println(currentSpeed);
+    display.showText("Speed Saved!");
+    delay(1000); // Show confirmation message briefly
   }
   inMenu = false;
 }
