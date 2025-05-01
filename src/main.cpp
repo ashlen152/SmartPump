@@ -24,10 +24,6 @@
 
 #define CALIBRATION_RESULT_DURATION 3000 // ms
 
-// Replace with your network credentials
-const char *ssid = "SofaHome";
-const char *password = "Sofa@123";
-
 // State
 bool inMenu = false;
 int menuIndex = 0;

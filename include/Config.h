@@ -1,6 +1,18 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// WiFi credentials passed via build flags
+#ifndef WIFI_SSID
+#define WIFI_SSID "DefaultSSID"
+#endif
+
+#ifndef WIFI_PASSWORD
+#define WIFI_PASSWORD "DefaultPassword"
+#endif
+
+const char *ssid = WIFI_SSID;
+const char *password = WIFI_PASSWORD;
+
 // Stepper Motor Pins
 #define DIR_PIN 2
 #define STEP_PIN 5
