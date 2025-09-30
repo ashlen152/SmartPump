@@ -1,3 +1,4 @@
+#include <vector>
 #ifndef AUTO_DOSING_MANAGER_H
 #define AUTO_DOSING_MANAGER_H
 
@@ -14,6 +15,15 @@
 #else
 #define AUTO_DOSING_LOG(format, ...)
 #endif
+
+
+
+struct DoseSchedule {
+    int hour;
+    int minute;
+    float ml;
+    bool completed;
+};
 
 struct DosingSchedule {
     float totalDailyVolume;      // Total volume for the day (e.g. 30ml)
@@ -44,11 +54,11 @@ public:
     void enable();
     void disable();
     void setDailyVolume(float volume);
-    float getDailyVolume() const { return schedule.totalDailyVolume; }
+    float getDailyVolume() const { return scheduleMeta.totalDailyVolume; }
     void updateSchedule();
     void checkAndDose();
-    bool isEnabled() const { return schedule.enabled; }
-    uint32_t getNextDosingTime() const { return schedule.nextDosingTime; }
+    bool isEnabled() const { return scheduleMeta.enabled; }
+    uint32_t getNextDosingTime() const { return scheduleMeta.nextDosingTime; }
     float getRemainingDailyVolume() const;
     void loadState();
     void saveState();
@@ -58,25 +68,21 @@ public:
     void printSchedule() const;
 
 private:
-    float calculateDoseVolume(uint32_t currentTime);
-    bool isInDayPeriod(uint32_t currentTime);
-    uint32_t calculateNextDosingTime(uint32_t currentTime);
-    bool performDosing(float volume);
+    void generateWeightedSchedule(int slots, float totalMl, int startHour, int endHour, float percent1, float percent2);
     void resetDailyVolume();
+    bool performDosing(float volume);
     void logDosingEvent(float volume, bool success);
-    
     PumpController& pump;
     DisplayManager& display;
-    DosingSchedule schedule;
-    float totalDosedVolume;      // Track total volume dosed today
-    Config eepromConfig;         // EEPROM configuration
-    
-    static const uint8_t DOSES_PER_HOUR = 2;  // Number of doses per hour
-    static const uint32_t DOSE_INTERVAL = (60) / DOSES_PER_HOUR; // Interval in ms
-    static const uint8_t DAY_START_HOUR = 11;  // 11:00 AM
-    static const uint8_t DAY_END_HOUR = 23;    // 11:00 PM
-    static constexpr float DAY_VOLUME_RATIO = 0.7f;
-    static constexpr float NIGHT_VOLUME_RATIO = 0.3f;
+    DosingSchedule scheduleMeta;
+    float totalDosedVolume;
+    Config eepromConfig;
+    std::vector<DoseSchedule> schedule;
+    int slots = 48; // Default slots per day
+    int startHour = 11;
+    int endHour = 23;
+    float percent1 = 0.6f;
+    float percent2 = 0.4f;
 };
 
 #endif
