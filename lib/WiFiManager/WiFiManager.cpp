@@ -300,3 +300,105 @@ bool WiFiManager::checkApiHealth()
   String response;
   return get("/api/health", response);
 }
+
+char WiFiManager::timeStr[9];  // Define static member
+
+void WiFiManager::configureTime(const char* ntpServer, const char* timezone) {
+    // Configure multiple NTP servers with Asia region priority
+    const char* servers[] = {
+        "asia.pool.ntp.org",      // Asia NTP pool
+        "sg.pool.ntp.org",        // Singapore NTP pool
+        "3.asia.pool.ntp.org",    // Asia pool server 3
+        "2.asia.pool.ntp.org"     // Asia pool server 2
+    };
+    
+    // Set timezone to ICT/Vietnam (UTC+7)
+    configTzTime("ICT-7", servers[0], servers[1], servers[2]);
+    
+    Serial.println("Waiting for NTP time sync...");
+    int retry = 0;
+    const int maxRetries = 15;  // Increased retry attempts
+    
+    while (retry < maxRetries) {
+        time_t now = time(nullptr);
+        if (now > 24 * 3600) {  // Valid time received
+            timeInitialized = true;
+            lastTimeSync = millis();
+            lastSyncedTime = now;
+            lastTimeUpdate = millis();
+            
+            struct tm timeinfo;
+            if(getLocalTime(&timeinfo)) {
+                Serial.printf("Time synchronized: %02d:%02d:%02d\n", 
+                            timeinfo.tm_hour, 
+                            timeinfo.tm_min, 
+                            timeinfo.tm_sec);
+                return;
+            }
+        }
+        
+        // If first server fails, try next one
+        if (retry % 5 == 4) {  // After every 5 attempts
+            int serverIndex = (retry / 5) % 4;
+            if (serverIndex < 3) {  // We have 4 servers
+                Serial.printf("Trying alternate NTP server: %s\n", servers[serverIndex + 1]);
+                configTzTime("ICT-7", servers[serverIndex + 1]);
+            }
+        }
+        
+        Serial.print(".");
+        delay(1000);
+        retry++;
+    }
+    
+    Serial.println("\nTime sync failed!");
+}
+
+const char* WiFiManager::getCurrentTime() {
+    if (!isConnected() || !timeInitialized) {
+        Serial.println("Time not initialized or WiFi not connected");
+        return "00:00:00";
+    }
+    
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo)) {
+        Serial.println("Failed to get local time");
+        
+        // Try to re-sync if we can't get the time
+        unsigned long currentMillis = millis();
+        if (currentMillis - lastTimeSync >= TIME_SYNC_INTERVAL) {
+            Serial.println("Attempting time re-sync...");
+            configTzTime("ICT-7", "pool.ntp.org", "time.nist.gov");
+            delay(100);  // Brief delay to allow sync
+            
+            if (getLocalTime(&timeinfo)) {
+                lastTimeSync = currentMillis;
+                lastSyncedTime = time(nullptr);
+                lastTimeUpdate = currentMillis;
+                Serial.println("Time re-sync successful");
+            } else {
+                Serial.println("Time re-sync failed");
+            }
+        }
+        
+        return "00:00:00";
+    }
+    
+    // Update time string if a second has passed
+    unsigned long currentMillis = millis();
+    if (currentMillis - lastTimeUpdate >= TIME_UPDATE_INTERVAL) {
+        sprintf(timeStr, "%02d:%02d:%02d", 
+                timeinfo.tm_hour,
+                timeinfo.tm_min, 
+                timeinfo.tm_sec);
+        lastTimeUpdate = currentMillis;
+        
+        // Periodically sync with NTP (every hour)
+        if (currentMillis - lastTimeSync >= TIME_SYNC_INTERVAL) {
+            lastTimeSync = currentMillis;
+            lastSyncedTime = time(nullptr);
+        }
+    }
+    
+    return timeStr;
+}

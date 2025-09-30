@@ -26,15 +26,42 @@ void DisplayManager::setSignalStrength(int strength)
   rssi = strength;
 }
 
-void DisplayManager::updateStatus(bool pumpEnabled, float mlPerMin)
+void DisplayManager::updateStatus(bool pumpEnabled, float value, PumpMode mode, const char* currentTime, bool autodosingEnabled, const char* nextSchedule)
 {
   if (displaySleeping)
     return;
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.println(pumpEnabled ? "Pump Enabled" : "Pump Disabled");
-  display.print("mL/min: ");
-  display.println(mlPerMin, 2);
+  
+  // Show mode and pump status (Line 1)
+  display.print(mode == PumpMode::PERISTALTIC ? "PERIST" : "DOSING");
+  display.print(" | ");
+  display.println(pumpEnabled ? "ON" : "OFF");
+  
+  // Show auto-dosing status and current value (Line 2)
+  if (mode == PumpMode::DOSING) {
+    display.print("AUTO:");
+    display.print(autodosingEnabled ? "ON" : "OFF");
+    display.print(" | ");
+    display.print(value, 1);
+    display.println("mL");
+  } else {
+    display.print("mL/min: ");
+    display.println(value, 1);
+  }
+  
+  // Show current time and next schedule (Line 3-4)
+  if (mode == PumpMode::DOSING) {
+    if (currentTime) {
+      display.print("Time: ");
+      display.println(currentTime);
+    }
+    if (autodosingEnabled && nextSchedule) {
+      display.print("Next: ");
+      display.println(nextSchedule);
+    }
+  }
+  
   displaySignalStrength();
   display.display();
 }
@@ -141,6 +168,74 @@ void DisplayManager::wakeDisplay()
   displaySleeping = false;
 }
 
+void DisplayManager::showDosingSetup(float volume, bool isVolumeSetup)
+{
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Manual Dosing Setup");
+  display.println();
+  
+  if (isVolumeSetup) {
+    display.println("Set Target Volume:");
+    display.print(volume, 2);
+    display.println(" mL");
+    display.println();
+    display.println("UP/DOWN to adjust");
+    display.println("ENABLE to confirm");
+    display.println("MENU to cancel");
+  } else {
+    display.println("Set Time Duration:");
+    display.print(volume);
+    display.println(" min");
+    display.println();
+    display.println("UP/DOWN to adjust");
+    display.println("ENABLE to start");
+    display.println("MENU to cancel");
+  }
+  
+  displaySignalStrength();
+  display.display();
+}
+
+void DisplayManager::showDosingProgress(float volume, float remainingVolume, const char* remainingTime)
+{
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Dosing in Progress");
+  display.println();
+  
+  display.print("Total: ");
+  display.print(volume, 2);
+  display.println(" mL");
+  
+  display.print("Remain: ");
+  display.print(remainingVolume, 2);
+  display.println(" mL");
+  
+  display.println();
+  display.print("Time Left: ");
+  display.println(remainingTime);
+  
+  displaySignalStrength();
+  display.display();
+}
+
+void DisplayManager::showDosingComplete(float totalVolume)
+{
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Dosing Complete!");
+  display.println();
+  
+  display.print("Total Dosed: ");
+  display.print(totalVolume, 2);
+  display.println(" mL");
+  
+  displaySignalStrength();
+  display.display();
+  delay(3000);
+}
+
 void DisplayManager::displaySignalStrength()
 {
   display.setCursor(0, SCREEN_HEIGHT - 8);
@@ -181,4 +276,24 @@ void DisplayManager::drawWiFiSignal(int strength)
       display.drawRect(0 + i * 4, SCREEN_HEIGHT - barHeight, 3, barHeight, WHITE);
     }
   }
+}
+
+void DisplayManager::showValue(const char* label, float value) {
+    if (displaySleeping) return;
+    
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    
+    // Show label
+    display.setCursor(0, 0);
+    display.println(label);
+    
+    // Show value in larger text
+    display.setTextSize(1);
+    display.setCursor(0, 16);
+    display.print(value, 1);
+    
+    displaySignalStrength();
+    display.display();
 }

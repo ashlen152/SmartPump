@@ -1,8 +1,7 @@
 import os
-from dotenv import load_dotenv
-
-# Load the .env file
-load_dotenv()
+# Temporarily commented out for compilation check
+#from dotenv import load_dotenv
+#load_dotenv()
 
 def before_build(env, platform):
     # Read environment variables from .env

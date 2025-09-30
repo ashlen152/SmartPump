@@ -11,7 +11,20 @@ public:
     static DisplayManager &getInstance();
     void begin();
     void setSignalStrength(int strength);
-    void updateStatus(bool pumpEnabled, float mlPerMin);
+    enum class PumpMode {
+        PERISTALTIC,
+        DOSING
+    };
+
+    enum class DosingState {
+        IDLE,
+        SETUP_VOLUME,
+        SETUP_TIME,
+        RUNNING,
+        PAUSED,
+        COMPLETED
+    };
+    void updateStatus(bool pumpEnabled, float value, PumpMode mode, const char* currentTime = nullptr, bool autodosingEnabled = false, const char* nextSchedule = nullptr);
     void sleepDisplay();
     void wakeDisplay();
     void showMenu(int menuIndex, const char *menuItems[], int itemCount);
@@ -21,8 +34,16 @@ public:
     void showCalibrationResult(float stepsPerML, int speedStep);
     void showText(const char *text);
     void showText(const std::vector<String> &textArray);
+    
+    // Manual dosing UI functions
+    void showDosingSetup(float volume, bool isVolumeSetup);
+    void showDosingProgress(float volume, float remainingVolume, const char* remainingTime);
+    void showDosingComplete(float totalVolume);
 
     bool isSleeping() const { return displaySleeping; }
+    
+    // Value display for settings
+    void showValue(const char* label, float value);
 
     // Display Pins and Settings
     static const int SCREEN_WIDTH = 128;
