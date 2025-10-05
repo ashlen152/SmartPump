@@ -24,7 +24,7 @@ struct DisplayContext
     float remainingVolume = 0.0f;
     const char *remainingTime = nullptr;
     float totalVolume = 0.0f;
-    bool isVolumeSetup = false;
+    int duration = 1;
 };
 
 class DisplayManager
@@ -46,6 +46,7 @@ public:
         CALIBRATION_INPUT,
         CALIBRATION_RESULT,
         DOSING_SETUP,
+        DOSING_BEGIN,
         DOSING_PROGRESS,
         DOSING_COMPLETE,
         STATUS,
@@ -102,7 +103,8 @@ public:
     void updateDisplayState();
 
     // Manual dosing UI
-    void showDosingSetup(float volume, bool isVolumeSetup);
+    void showDosingSetup(float volume);
+    void showDosingBegin(int du);
     void showDosingProgress(float volume, float remainingVolume, const char *remainingTime);
     void showDosingComplete(float totalVolume);
 
@@ -145,10 +147,13 @@ public:
         m_ctx.stepsPerML = stepsPerML;
         m_ctx.speedStep = speedStep;
     }
-    void setContextDosingSetup(float volume, bool isVolumeSetup)
+    void setContextDosingSetup(float volume)
     {
         m_ctx.value = volume;
-        m_ctx.isVolumeSetup = isVolumeSetup;
+    }
+    void setContextDosingBegin(int duration)
+    {
+        m_ctx.duration = duration;
     }
     void setContextDosingProgress(float volume, float remainingVolume, const char *remainingTime)
     {

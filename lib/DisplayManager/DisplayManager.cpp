@@ -57,7 +57,10 @@ void DisplayManager::updateDisplayState()
     showCalibrationResult(m_ctx.stepsPerML, m_ctx.speedStep);
     break;
   case DisplayState::DOSING_SETUP:
-    showDosingSetup(m_ctx.value, m_ctx.isVolumeSetup);
+    showDosingSetup(m_ctx.value);
+    break;
+  case DisplayState::DOSING_BEGIN:
+    showDosingBegin(m_ctx.duration);
     break;
   case DisplayState::DOSING_PROGRESS:
     showDosingProgress(m_ctx.value, m_ctx.remainingVolume, m_ctx.remainingTime);
@@ -246,7 +249,7 @@ void DisplayManager::wakeDisplay()
   displaySleeping = false;
 }
 
-void DisplayManager::showDosingSetup(float volume, bool isVolumeSetup)
+void DisplayManager::showDosingSetup(float volume)
 {
   if (isDisplayInUse(DisplayManager::DisplayState::DOSING_SETUP))
     return;
@@ -256,26 +259,35 @@ void DisplayManager::showDosingSetup(float volume, bool isVolumeSetup)
   display.println("Manual Dosing Setup");
   display.println();
 
-  if (isVolumeSetup)
-  {
-    display.println("Set Target Volume:");
-    display.print(volume, 2);
-    display.println(" mL");
-    display.println();
-    display.println("UP/DOWN to adjust");
-    display.println("ENABLE to confirm");
-    display.println("MENU to cancel");
-  }
-  else
-  {
-    display.println("Set Time Duration:");
-    display.print(volume);
-    display.println(" min");
-    display.println();
-    display.println("UP/DOWN to adjust");
-    display.println("ENABLE to start");
-    display.println("MENU to cancel");
-  }
+  display.println("Set Target Volume:");
+  display.print(volume, 2);
+  display.println(" mL");
+  display.println();
+  display.println("UP/DOWN to adjust");
+  display.println("ENABLE to confirm");
+  display.println("MENU to cancel");
+
+  displaySignalStrength();
+  display.display();
+}
+
+void DisplayManager::showDosingBegin(int duration)
+{
+  if (isDisplayInUse(DisplayManager::DisplayState::DOSING_BEGIN))
+    return;
+
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Manual Dosing Setup");
+  display.println();
+
+  display.println("Set Time Duration:");
+  display.print(duration);
+  display.println(" min");
+  display.println();
+  display.println("UP/DOWN to adjust");
+  display.println("ENABLE to start");
+  display.println("MENU to cancel");
 
   displaySignalStrength();
   display.display();
