@@ -7,7 +7,7 @@ static time_t toTimeT(uint32_t t) {
 }
 
 AutoDosingManager::AutoDosingManager(PumpController& p, DisplayManager& d, const Config& config)
-    : pump(p), display(d), totalDosedVolume(0), eepromConfig(config) {
+    : pump(p), display(d), eepromConfig(config) {
     scheduleMeta.enabled = true;
     scheduleMeta.totalDailyVolume = config.defaultVolume;
     scheduleMeta.dayStartHour = startHour;
