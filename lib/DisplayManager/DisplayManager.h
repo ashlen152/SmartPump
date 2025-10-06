@@ -49,6 +49,10 @@ public:
         DOSING_BEGIN,
         DOSING_PROGRESS,
         DOSING_COMPLETE,
+        DOSING_MANUAL_START,
+        DOSING_MANUAL_BEGIN,
+        DOSING_MANUAL_PROGRESS,
+        DOSING_MANUAL_COMPLETE,
         STATUS,
         INFO,
         ERROR,
@@ -103,10 +107,10 @@ public:
     void updateDisplayState();
 
     // Manual dosing UI
-    void showDosingSetup(float volume);
-    void showDosingBegin(int du);
-    void showDosingProgress(float volume, float remainingVolume, const char *remainingTime);
-    void showDosingComplete(float totalVolume);
+    void showDosingManualSetup(float volume);
+    void showDosingManualBegin(int du);
+    void showDosingManualProgress(float volume, float remainingVolume, const char *remainingTime);
+    void showDosingManualComplete(float totalVolume);
 
     // Display constants
     static const int SCREEN_WIDTH = 128;
@@ -147,21 +151,21 @@ public:
         m_ctx.stepsPerML = stepsPerML;
         m_ctx.speedStep = speedStep;
     }
-    void setContextDosingSetup(float volume)
+    void setContextDosingManualSetup(float volume)
     {
         m_ctx.value = volume;
     }
-    void setContextDosingBegin(int duration)
+    void setContextDosingManualBegin(int duration)
     {
         m_ctx.duration = duration;
     }
-    void setContextDosingProgress(float volume, float remainingVolume, const char *remainingTime)
+    void setContextDosingManualProgress(float volume, float remainingVolume, const char *remainingTime)
     {
         m_ctx.value = volume;
         m_ctx.remainingVolume = remainingVolume;
         m_ctx.remainingTime = remainingTime;
     }
-    void setContextDosingComplete(float totalVolume)
+    void setContextDosingManualComplete(float totalVolume)
     {
         m_ctx.totalVolume = totalVolume;
     }

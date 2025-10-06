@@ -57,16 +57,16 @@ void DisplayManager::updateDisplayState()
     showCalibrationResult(m_ctx.stepsPerML, m_ctx.speedStep);
     break;
   case DisplayState::DOSING_SETUP:
-    showDosingSetup(m_ctx.value);
+    showDosingManualSetup(m_ctx.value);
     break;
   case DisplayState::DOSING_BEGIN:
-    showDosingBegin(m_ctx.duration);
+    showDosingManualBegin(m_ctx.duration);
     break;
   case DisplayState::DOSING_PROGRESS:
-    showDosingProgress(m_ctx.value, m_ctx.remainingVolume, m_ctx.remainingTime);
+    showDosingManualProgress(m_ctx.value, m_ctx.remainingVolume, m_ctx.remainingTime);
     break;
   case DisplayState::DOSING_COMPLETE:
-    showDosingComplete(m_ctx.totalVolume);
+    showDosingManualComplete(m_ctx.totalVolume);
     break;
   case DisplayState::STATUS:
     updateStatus(m_ctx.pumpEnabled, m_ctx.value, m_ctx.currentTime, m_ctx.autodosingEnabled, m_ctx.nextSchedule);
@@ -249,7 +249,7 @@ void DisplayManager::wakeDisplay()
   displaySleeping = false;
 }
 
-void DisplayManager::showDosingSetup(float volume)
+void DisplayManager::showDosingManualSetup(float volume)
 {
   if (isDisplayInUse(DisplayManager::DisplayState::DOSING_SETUP))
     return;
@@ -271,9 +271,9 @@ void DisplayManager::showDosingSetup(float volume)
   display.display();
 }
 
-void DisplayManager::showDosingBegin(int duration)
+void DisplayManager::showDosingManualBegin(int duration)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::DOSING_BEGIN))
+  if (isDisplayInUse(DisplayManager::DisplayState::DOSING_MANUAL_BEGIN))
     return;
 
   display.clearDisplay();
@@ -293,9 +293,9 @@ void DisplayManager::showDosingBegin(int duration)
   display.display();
 }
 
-void DisplayManager::showDosingProgress(float volume, float remainingVolume, const char *remainingTime)
+void DisplayManager::showDosingManualProgress(float volume, float remainingVolume, const char *remainingTime)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::DOSING_PROGRESS))
+  if (isDisplayInUse(DisplayManager::DisplayState::DOSING_MANUAL_PROGRESS))
     return;
 
   display.clearDisplay();
@@ -319,9 +319,9 @@ void DisplayManager::showDosingProgress(float volume, float remainingVolume, con
   display.display();
 }
 
-void DisplayManager::showDosingComplete(float totalVolume)
+void DisplayManager::showDosingManualComplete(float totalVolume)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::DOSING_COMPLETE))
+  if (isDisplayInUse(DisplayManager::DisplayState::DOSING_MANUAL_COMPLETE))
     return;
 
   display.clearDisplay();

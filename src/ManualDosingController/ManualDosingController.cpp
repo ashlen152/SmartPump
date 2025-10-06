@@ -10,14 +10,14 @@ void setupManualDosingController()
     DisplayManager &display = DisplayManager::getInstance();
     float initialVolume = 10; // Initial volume for setup
     display.setState(DisplayManager::DisplayState::DOSING_SETUP);
-    display.setContextDosingSetup(initialVolume);
+    display.setContextDosingManualSetup(initialVolume);
 }
 void handleRunningManualDosingController()
 {
     DisplayManager &display = DisplayManager::getInstance();
 
     display.setState(DisplayManager::DisplayState::DOSING_BEGIN);
-    display.setContextDosingBegin(1); // Example duration
+    display.setContextDosingManualBegin(1); // Example duration
 
     // float stepsPerML = pump.getDosingStepsPerML();
     // const long totalSteps = targetVolume * stepsPerML;
@@ -53,7 +53,7 @@ void handleCompletedDosing(long totalVolume)
     DisplayManager &display = DisplayManager::getInstance();
 
     display.setState(DisplayManager::DisplayState::DOSING_COMPLETE);
-    display.setContextDosingComplete(totalVolume);
+    display.setContextDosingManualComplete(totalVolume);
 }
 
 // case DisplayManager::DosingState::RUNNING:
