@@ -151,11 +151,11 @@ public:
         m_ctx.stepsPerML = stepsPerML;
         m_ctx.speedStep = speedStep;
     }
-    void setContextDosingManualSetup(float volume)
+    void setContextDosingManualBegin(float volume)
     {
         m_ctx.value = volume;
     }
-    void setContextDosingManualBegin(int duration)
+    void setContextDosingManualStart(int duration)
     {
         m_ctx.duration = duration;
     }

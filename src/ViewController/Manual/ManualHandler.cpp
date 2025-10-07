@@ -1,10 +1,30 @@
+#include "ManualHandler.h"
 #include "ViewController/Manual/ManualHandler.h"
 #include <DisplayManager.h>
 #include "ButtonController/ButtonController.h"
-#include "ManualHandler.h"
+#include "ManualDosingController/ManualDosingController.h"
 
 void ManualHandler()
 {
+    if (!isInManual())
+    {
+        beginManualDosingController(isInManualBegin());
+    }
+    else if (isInManualBegin())
+    {
+        startManualDosingController();
+    }
+    else if (isInManualStart())
+    {
+        progressManualDosingController();
+    }
+    else if (isInManualProgress())
+    {
+        completeManualDosingController();
+    }
+    else if (isInManualComplete())
+    {
+    }
 }
 
 bool isInManual()
