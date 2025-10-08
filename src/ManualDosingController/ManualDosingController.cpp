@@ -29,8 +29,7 @@ void beginManualDosingController(bool isInManualBegin)
         }
         if (pressButtonMenu())
         {
-            display.setContextDosingManualBegin(volume);
-            display.setState(DisplayManager::DisplayState::DOSING_MANUAL_START);
+            startManualDosingController(false);
         }
     }
     else
@@ -62,8 +61,7 @@ void startManualDosingController(bool isInManualStart)
         }
         if (pressButtonMenu())
         {
-            display.setContextDosingManualStart(duration);
-            display.setState(DisplayManager::DisplayState::DOSING_MANUAL_PROGRESS);
+            progressManualDosingController(false);
         }
     }
     else
@@ -77,6 +75,7 @@ void startManualDosingController(bool isInManualStart)
 void progressManualDosingController(bool isInManualProgress)
 {
     DisplayManager &display = DisplayManager::getInstance();
+    PumpController &pump = PumpController::getInstance();
 
     if (isInManualProgress)
     {
@@ -91,10 +90,12 @@ void progressManualDosingController(bool isInManualProgress)
         // if yes, then complete dosing
         // else recalculate remaining volume and time
         // update display
-        // if (pump.getCurrentPosition() >= totalSteps)
-        // {
-        //     completeManualDosingController();
-        // }
+        float stepsPerML = pump.getDosingStepsPerML();
+        const long totalSteps = volume * stepsPerML;
+        if (pump.getCurrentPosition() >= totalSteps)
+        {
+            completeManualDosingController(false);
+        }
         // else {
         //     float remainingVolume = (totalSteps - pump.getCurrentPosition()) / stepsPerML;
         //     display.setContextDosingManualProgress(volume, remainingVolume, wifi.getCurrent
@@ -102,87 +103,24 @@ void progressManualDosingController(bool isInManualProgress)
     }
     else
     {
+
+        // float stepsPerML = pump.getDosingStepsPerML();
+        // const long totalSteps = targetVolume * stepsPerML;
+
+        // pump.moveML(targetVolume);
+
+        // // Debug logging
+        // Serial.printf("Dosing Started: %.2f mL\n", targetVolume);
+        // Serial.printf("Steps per mL: %.2f, Total Steps: %ld\n", stepsPerML, totalSteps);
         display.setContextDosingManualProgress(volume, volume, "00:00:00");
         display.setState(DisplayManager::DisplayState::DOSING_MANUAL_PROGRESS);
     }
-    // float stepsPerML = pump.getDosingStepsPerML();
-    // const long totalSteps = targetVolume * stepsPerML;
-
-    // pump.moveML(targetVolume);
-
-    // // Debug logging
-    // Serial.printf("Dosing Started: %.2f mL\n", targetVolume);
-    // Serial.printf("Steps per mL: %.2f, Total Steps: %ld\n", stepsPerML, totalSteps);
 
     // display.setContextDosingProgress(targetVolume, remainingVolume, wifi.getCurrentTime());
 }
 
-void completeManualDosingController()
+void completeManualDosingController(bool isInManualComplete)
 {
     DisplayManager &display = DisplayManager::getInstance();
     display.setState(DisplayManager::DisplayState::DOSING_MANUAL_COMPLETE);
 }
-
-void handleStopManualDosingController(float targetVolume)
-{
-    DisplayManager &display = DisplayManager::getInstance();
-    WiFiManager &wifi = WiFiManager::getInstance();
-
-    // float stepsPerML = pump.getDosingStepsPerML();
-    // const long totalSteps = targetVolume * stepsPerML;
-
-    // pump.moveML(targetVolume);
-
-    // // Debug logging
-    // Serial.printf("Dosing Started: %.2f mL\n", targetVolume);
-    // Serial.printf("Steps per mL: %.2f, Total Steps: %ld\n", stepsPerML, totalSteps);
-
-    // display.setState(DisplayManager::DisplayState::DOSING_PROGRESS);
-    // display.setContextDosingProgress(targetVolume, remainingVolume, wifi.getCurrentTime());
-}
-void handleCompletedDosing(long totalVolume)
-{
-    DisplayManager &display = DisplayManager::getInstance();
-
-    display.setState(DisplayManager::DisplayState::DOSING_COMPLETE);
-    display.setContextDosingManualComplete(totalVolume);
-}
-
-// case DisplayManager::DosingState::RUNNING:
-//     // Pause/Resume dosing
-//     if (pump.isEnabled())
-//     {
-//         dosingState = DisplayManager::DosingState::PAUSED;
-//         pump.stop();
-//     }
-//     else
-//     {
-//         dosingState = DisplayManager::DosingState::RUNNING;
-//         pump.setMode(PumpMode::DOSING); // Resume dosing
-//     }
-//     display.showDosingProgress(targetVolume, remainingVolume, wifi.getCurrentTime());
-//     break;
-
-// case DisplayManager::DosingState::COMPLETED:
-//     // Reset to idle state
-//     dosingState = DisplayManager::DosingState::IDLE;
-//     display.updateStatus(false, 0, currentMode, wifi.getCurrentTime());
-//     break;
-// }
-// }
-
-// if (dosingState == DisplayManager::DosingState::SETUP_VOLUME)
-// {
-//     if (checkButtonPressOrHold(BUTTON_SPEED_UP_PIN))
-//     {
-//         targetVolume += 1.f;
-//         display.showDosingSetup(targetVolume, true);
-//     }
-//     if (checkButtonPressOrHold(BUTTON_SPEED_DOWN_PIN))
-//     {
-//         targetVolume = max(targetVolume - 1.f, 1.f);
-//         display.showDosingSetup(targetVolume, true);
-//     }
-// }
-// }
-// }

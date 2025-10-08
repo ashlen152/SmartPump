@@ -3,10 +3,10 @@
 
 void beginManualDosingController(bool isInManualBegin);
 
-void startManualDosingController();
+void startManualDosingController(bool isInManualStart);
 
-void progressManualDosingController();
+void progressManualDosingController(bool isInManualProgress);
 
-void completeManualDosingController();
+void completeManualDosingController(bool isInManualComplete);
 
 #endif

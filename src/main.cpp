@@ -7,7 +7,8 @@
 #include <WiFiManager.h>
 #include "WifiController/WiFiSync.h"
 #include "DisplayController/DisplayUpdater.h"
-#include "ButtonController/MenuHandler.h"
+#include "PumpController.h"
+#include "ViewController/Home/HomeHandler.h"
 
 // #include <ArduinoJson.h>
 // #include "PumpController.h"
@@ -41,12 +42,12 @@ bool showingCalibrationResult = false;
 
 // // Create instances
 
-// PumpController pump(&Serial2, STEP_PIN, DIR_PIN, EN_PIN, R_SENSE, DRIVER_ADDR);
 // AutoDosingManager autoDosing(pump, display, dosingConfig);
 
 void setup()
 {
   DisplayManager &display = DisplayManager::getInstance();
+  PumpController &pump = PumpController::getInstance();
 
   Serial.begin(115200);
   while (!Serial)
@@ -61,7 +62,8 @@ void setup()
   pinMode(BUTTON_MENU_PIN, INPUT_PULLUP);
 
   display.begin();
-  // pump.begin();
+  pump.init(&Serial2, STEP_PIN, DIR_PIN, EN_PIN, R_SENSE, DRIVER_ADDR);
+  pump.begin();
 
   lastWiFiRetryTime = millis();
   display.showText("WiFi Connecting...");
@@ -69,6 +71,7 @@ void setup()
 
 void loop()
 {
+  PumpController &pump = PumpController::getInstance();
   unsigned long currentTime = millis();
   static bool firstLoop = true;
   if (firstLoop)
@@ -80,14 +83,14 @@ void loop()
   // WiFi connection and health logic
   handleWiFi(currentTime, lastWiFiRetryTime);
 
-  // // Dosing logic
-  // pump.runDosing();
-
-  // // Button and menu handling
-  MenuHandler();
+  // Button and menu handling
+  HomeHandler();
 
   // Display update
   updateDisplayStatus();
+
+  // Dosing logic
+  pump.runDosing();
 
   // // Data sync
   // if (wifi.isConnected() && currentTime - lastSyncTime >= SYNC_INTERVAL) {
