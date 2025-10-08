@@ -76,6 +76,7 @@ void progressManualDosingController(bool isInManualProgress)
 {
     DisplayManager &display = DisplayManager::getInstance();
     PumpController &pump = PumpController::getInstance();
+    WiFiManager &wifi = WiFiManager::getInstance();
 
     if (isInManualProgress)
     {
@@ -96,22 +97,20 @@ void progressManualDosingController(bool isInManualProgress)
         {
             completeManualDosingController(false);
         }
-        // else {
-        //     float remainingVolume = (totalSteps - pump.getCurrentPosition()) / stepsPerML;
-        //     display.setContextDosingManualProgress(volume, remainingVolume, wifi.getCurrent
-        //   .getCurrentTime());
+        else
+        {
+            float remainingVolume = (totalSteps - pump.getCurrentPosition()) / stepsPerML;
+            display.setContextDosingManualProgress(volume, remainingVolume, wifi.getCurrentTime());
+        }
     }
     else
     {
 
-        // float stepsPerML = pump.getDosingStepsPerML();
-        // const long totalSteps = targetVolume * stepsPerML;
+        float stepsPerML = pump.getDosingStepsPerML();
+        const long targetSteps = volume * stepsPerML;
 
-        // pump.moveML(targetVolume);
+        pump.moveML(volume);
 
-        // // Debug logging
-        // Serial.printf("Dosing Started: %.2f mL\n", targetVolume);
-        // Serial.printf("Steps per mL: %.2f, Total Steps: %ld\n", stepsPerML, totalSteps);
         display.setContextDosingManualProgress(volume, volume, "00:00:00");
         display.setState(DisplayManager::DisplayState::DOSING_MANUAL_PROGRESS);
     }

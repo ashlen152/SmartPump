@@ -12,15 +12,15 @@ void ManualHandler()
     }
     else if (isInManualBegin())
     {
-        startManualDosingController();
+        startManualDosingController(isInManualStart());
     }
     else if (isInManualStart())
     {
-        progressManualDosingController();
+        progressManualDosingController(isInManualProgress());
     }
     else if (isInManualProgress())
     {
-        completeManualDosingController();
+        completeManualDosingController(isInManualComplete());
     }
     else if (isInManualComplete())
     {
