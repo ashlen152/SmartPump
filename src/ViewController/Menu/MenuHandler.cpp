@@ -2,25 +2,25 @@
 #include <ButtonConfig.h>
 #include "ButtonController/ButtonController.h"
 #include <DisplayManager.h>
+#include <PumpController.h>
 
-int menuIndex = 0;
-bool showingSettings = false;
-const char *menuItems[] = {"Dosing Cal", "Settings Info", "Auto Dosing", "Set Daily Vol"};
+static int menuIndex = 0;
+static bool showingSettings = false;
+static const char *menuItems[] = {"Dosing Cal", "Settings Info", "Auto Dosing", "Set Daily Vol"};
 
 void runMenuSelection()
 {
   DisplayManager &display = DisplayManager::getInstance();
+  PumpController &pump = PumpController::getInstance();
+
   switch (menuIndex)
   {
   case 0: // Dosing Calibration
     // calibrateDosing();
-    display.setState(DisplayManager::DisplayState::CALIBRATION_START);
+    display.setState(DisplayManager::DisplayState::CALIBRATE_BEGIN);
     break;
-  case 1:                                   // Settings Info
-                                            // display.showSettingsInfo(pump.getSpeed(),
-                                            //                          pump.getDosingStepsPerML(),
-                                            //                          pump.getSpeedStep());
-    display.setContextSettings(0, 0.0f, 0); // Replace with real values
+  case 1: // Settings Info
+    display.setContextSettings(pump.getSpeed(), pump.getDosingStepsPerML(), pump.getSpeedStep());
     display.setState(DisplayManager::DisplayState::SETTINGS);
     break;
   case 2: // Auto Dosing

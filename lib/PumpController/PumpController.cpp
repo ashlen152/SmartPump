@@ -64,6 +64,8 @@ void PumpController::runDosing()
     return;
   }
 
+  stepper.run();
+
 #ifdef PUMP_DEBUG_LOG
   if (millis() - lastDebugTime > 1000)
   {

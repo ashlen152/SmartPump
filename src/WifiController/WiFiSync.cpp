@@ -6,10 +6,11 @@
 #include <WifiConfig.h>
 #include <Config.h>
 
+static DisplayManager &display = DisplayManager::getInstance();
+static WiFiManager &wifi = WiFiManager::getInstance();
+
 void syncData()
 {
-  DisplayManager &display = DisplayManager::getInstance();
-  WiFiManager &wifi = WiFiManager::getInstance();
   JsonDocument doc;
   int rssi = wifi.getSignalStrength();
   // doc["pumpId"] = ID_PERISTALTIC_STEPPER;
@@ -31,8 +32,6 @@ void syncData()
 void handleWiFi(unsigned long currentTime, unsigned long &lastWiFiRetryTime)
 {
 
-  DisplayManager &display = DisplayManager::getInstance();
-  WiFiManager &wifi = WiFiManager::getInstance();
   if (!wifi.isConnected() && currentTime - lastWiFiRetryTime >= WIFI_RETRY_INTERVAL)
   {
     Serial.println("Attempting WiFi Connect...");

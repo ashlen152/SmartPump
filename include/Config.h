@@ -1,75 +1,66 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
+// ======================================================
+// Configuration Constants (modern constexpr version)
+// ======================================================
 
-// Stepper Motor Pins
-#define DIR_PIN 2
-#define STEP_PIN 5
-#define STEPPER_EN_PIN 26
+// ==========================
+// Stepper Motor Settings
+// ==========================
 
-// Display Pins and Settings
-#define POT_PIN 34
-// Display dimensions moved to DisplayManager.h
+namespace Config
+{
+    constexpr int STEPPER_EN_PIN = 26; // Stepper enable pin
+    constexpr int DIR_PIN = 2;         // Direction pin
+    constexpr int STEP_PIN = 5;        // Step pin
 
-// Stepper Settings
-#define MAX_SPEED 100000
-#define ACCELERATION 1000
+    constexpr float R_SENSE = 0.11f;      // Sense resistor for TMC2209
+    constexpr uint8_t DRIVER_ADDR = 0b00; // Default address for TMC2209 driver
 
-// Display Timeout (ms)
-#define DISPLAY_TIMEOUT 100000
-// EEPROM Address
-#define EEPROM_PERISTALTIC_STEPS_ADDR 0
-#define EEPROM_DOSING_STEPS_ADDR (EEPROM_PERISTALTIC_STEPS_ADDR + sizeof(float))
-#define EEPROM_SAVED_SPEED_ADDR (EEPROM_DOSING_STEPS_ADDR + sizeof(float))
-#define EEPROM_MODE_ADDR (EEPROM_SAVED_SPEED_ADDR + sizeof(float))
-#define EEPROM_AUTO_DOSING_ENABLED_ADDR (EEPROM_MODE_ADDR + sizeof(uint8_t))
-#define EEPROM_DAILY_VOLUME_ADDR (EEPROM_AUTO_DOSING_ENABLED_ADDR + sizeof(bool))
-#define EEPROM_LAST_DOSING_TIME_ADDR (EEPROM_DAILY_VOLUME_ADDR + sizeof(float))
-#define EEPROM_TOTAL_DOSED_ADDR (EEPROM_LAST_DOSING_TIME_ADDR + sizeof(uint32_t))
+    constexpr float MAX_SPEED = 100000.0f;  // steps/sec
+    constexpr float ACCELERATION = 1000.0f; // steps/sec²
 
-// Debug Settings
-#define DEBUG_AUTO_DOSING 1 // Enable auto-dosing debug logs
-#define DEBUG_TIMESTAMP 1   // Include timestamps in debug logs
+    // ==========================
+    // Display & Timing
+    // ==========================
+    constexpr unsigned long DISPLAY_TIMEOUT = 100000UL;           // ms
+    constexpr unsigned long SETTINGS_DISPLAY_DURATION = 5000UL;   // ms
+    constexpr unsigned long CALIBRATION_RESULT_DURATION = 3000UL; // ms
 
-// Calibration Settings
-#define CALIBRATE_PERISTALTIC_TIME 60 // seconds
-#define CALIBRATE_DOSING_VOLUME 10    // mL
-#define CALIBRATE_SPEED 20000         // steps/sec
+    // ==========================
+    // EEPROM Address Map
+    // ==========================
+    constexpr int EEPROM_PERISTALTIC_STEPS_ADDR = 0;
+    constexpr int EEPROM_DOSING_STEPS_ADDR = EEPROM_PERISTALTIC_STEPS_ADDR + sizeof(float);
+    constexpr int EEPROM_SAVED_SPEED_ADDR = EEPROM_DOSING_STEPS_ADDR + sizeof(float);
+    constexpr int EEPROM_MODE_ADDR = EEPROM_SAVED_SPEED_ADDR + sizeof(float);
+    constexpr int EEPROM_AUTO_DOSING_ENABLED_ADDR = EEPROM_MODE_ADDR + sizeof(uint8_t);
+    constexpr int EEPROM_DAILY_VOLUME_ADDR = EEPROM_AUTO_DOSING_ENABLED_ADDR + sizeof(bool);
+    constexpr int EEPROM_LAST_DOSING_TIME_ADDR = EEPROM_DAILY_VOLUME_ADDR + sizeof(float);
+    constexpr int EEPROM_TOTAL_DOSED_ADDR = EEPROM_LAST_DOSING_TIME_ADDR + sizeof(uint32_t);
+    constexpr int EEPROM_ADDR = 0; // base EEPROM address (legacy)
 
-// Auto-dosing EEPROM addresses
-#define EEPROM_AUTO_DOSING_ENABLED_ADDR (EEPROM_MODE_ADDR + sizeof(uint8_t))
-#define EEPROM_DAILY_VOLUME_ADDR (EEPROM_AUTO_DOSING_ENABLED_ADDR + sizeof(bool))
-#define EEPROM_LAST_DOSING_TIME_ADDR (EEPROM_DAILY_VOLUME_ADDR + sizeof(float))
-#define EEPROM_TOTAL_DOSED_ADDR (EEPROM_LAST_DOSING_TIME_ADDR + sizeof(uint32_t))
+    // ==========================
+    // Debug Settings
+    // ==========================
+    constexpr bool DEBUG_AUTO_DOSING = true; // Enable auto-dosing debug logs
+    constexpr bool DEBUG_TIMESTAMP = true;   // Include timestamps in debug logs
 
-// Auto dosing defaults
-#define DEFAULT_DAILY_VOLUME 30.0f // Default daily volume in mL
+    // ==========================
+    // Calibration Settings
+    // ==========================
+    constexpr unsigned int CALIBRATE_PERISTALTIC_TIME = 60; // seconds
+    constexpr float CALIBRATE_DOSING_VOLUME = 10.0f;        // mL
+    constexpr float CALIBRATE_SPEED = 20000.0f;             // steps/sec
+    constexpr unsigned int CALIBRATE_TIME = 60;             // seconds (legacy)
 
-#define EN_PIN 26  // Enable
-#define DIR_PIN 2  // Direction
-#define STEP_PIN 5 // Step
+    // ==========================
+    // Auto Dosing Defaults
+    // ==========================
+    constexpr float DEFAULT_DAILY_VOLUME = 30.0f; // Default daily volume in mL
 
-constexpr const int RX_PIN = 16;
-constexpr const int TX_PIN = 17;
-
-#define R_SENSE 0.11f
-#define DRIVER_ADDR 0b00 // Default address for TMC2209
-
-#define DISPLAY_TIMEOUT 100000
-#define EEPROM_ADDR 0
-
-// Auto dosing defaults
-#define CALIBRATE_TIME 60     // seconds
-#define CALIBRATE_SPEED 20000 // steps/sec
-
-#define SETTINGS_DISPLAY_DURATION 5000   // ms
-#define CALIBRATION_RESULT_DURATION 3000 // ms
-
-// extern char const* ssid;
-// extern char const* password;
-// extern char* ID_PERISTALTIC_STEPPER;
-// extern char* PUMP_SETTINGS_API;
-// extern char* PUMP_BY_ID_API;
-// extern int WIFI_RETRY_INTERVAL;
-// extern int SYNC_INTERVAL;
-
-#endif
+    // ==========================
+    // Serial / Communication Pins
+    // ==========================
+    constexpr int RX_PIN = 16;
+    constexpr int TX_PIN = 17;
+}

@@ -2,10 +2,11 @@
 #include <DisplayManager.h>
 #include <WiFiManager.h>
 
+static DisplayManager &display = DisplayManager::getInstance();
+static WiFiManager &wifi = WiFiManager::getInstance();
+
 void updateDisplayStatus()
 {
-  DisplayManager &display = DisplayManager::getInstance();
-  WiFiManager &wifi = WiFiManager::getInstance();
 
   // Example: fill DisplayContext with real data from your system
   DisplayContext ctx;

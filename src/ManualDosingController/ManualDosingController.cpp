@@ -5,8 +5,8 @@
 #include <WiFiManager.h>
 #include <PumpController.h>
 
-float volume = 10.0; // Default volume for manual dosing
-int duration = 1;
+static float volume = 10.0; // Default volume for manual dosing
+static int duration = 1;
 
 void beginManualDosingController(bool isInManualBegin)
 {
@@ -86,14 +86,9 @@ void progressManualDosingController(bool isInManualProgress)
             // cancel dosing
             display.setState(DisplayManager::DisplayState::NORMAL);
         }
-        // TODO:
-        // check elapsed steps of motor > total steps
-        // if yes, then complete dosing
-        // else recalculate remaining volume and time
-        // update display
         float stepsPerML = pump.getDosingStepsPerML();
         const long totalSteps = volume * stepsPerML;
-        if (pump.getCurrentPosition() >= totalSteps)
+        if (pump.getDistanceToGo() <= 0)
         {
             completeManualDosingController(false);
         }
@@ -114,8 +109,6 @@ void progressManualDosingController(bool isInManualProgress)
         display.setContextDosingManualProgress(volume, volume, "00:00:00");
         display.setState(DisplayManager::DisplayState::DOSING_MANUAL_PROGRESS);
     }
-
-    // display.setContextDosingProgress(targetVolume, remainingVolume, wifi.getCurrentTime());
 }
 
 void completeManualDosingController(bool isInManualComplete)

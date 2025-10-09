@@ -4,9 +4,10 @@
 #include "ViewController/Menu/MenuHandler.h"
 #include "ViewController/Manual/ManualHandler.h"
 
+static DisplayManager &display = DisplayManager::getInstance();
+
 void HomeHandler()
 {
-  DisplayManager &display = DisplayManager::getInstance();
   if (!isInHome())
     return;
   // if any button was pressed in home, switch case to handle it
@@ -22,7 +23,6 @@ void HomeHandler()
 
 bool isInHome()
 {
-  DisplayManager &display = DisplayManager::getInstance();
   if (display.getCurrentState() == DisplayManager::DisplayState::NORMAL)
     return true;
   return false;

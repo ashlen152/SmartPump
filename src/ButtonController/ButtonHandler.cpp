@@ -2,13 +2,14 @@
 #include <ButtonConfig.h>
 #include <DisplayManager.h>
 
-unsigned long lastButtonPressTime = 0;
-unsigned long holdStartTime[4] = {0};
-unsigned long lastActionTime[4] = {0};
+static unsigned long lastButtonPressTime = 0;
+static unsigned long holdStartTime[4] = {0};
+static unsigned long lastActionTime[4] = {0};
+
+static DisplayManager &display = DisplayManager::getInstance();
 
 bool checkButtonPress(int pin)
 {
-  DisplayManager &display = DisplayManager::getInstance();
   if (digitalRead(pin) == LOW)
   {
     lastButtonPressTime = millis();

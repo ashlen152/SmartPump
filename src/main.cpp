@@ -9,6 +9,8 @@
 #include "DisplayController/DisplayUpdater.h"
 #include "PumpController.h"
 #include "ViewController/Home/HomeHandler.h"
+#include "ViewController/Menu/MenuHandler.h"
+#include "ViewController/Manual/ManualHandler.h"
 
 // #include <ArduinoJson.h>
 // #include "PumpController.h"
@@ -54,7 +56,7 @@ void setup()
     ;
   Serial.println("Starting...");
   EEPROM.begin(512);
-  Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
+  Serial2.begin(115200, SERIAL_8N1, Config::RX_PIN, Config::TX_PIN);
 
   pinMode(BUTTON_ENABLE_PIN, INPUT_PULLUP);
   pinMode(BUTTON_SPEED_UP_PIN, INPUT_PULLUP);
@@ -62,7 +64,7 @@ void setup()
   pinMode(BUTTON_MENU_PIN, INPUT_PULLUP);
 
   display.begin();
-  pump.init(&Serial2, STEP_PIN, DIR_PIN, EN_PIN, R_SENSE, DRIVER_ADDR);
+  pump.init(&Serial2, Config::STEP_PIN, Config::DIR_PIN, Config::STEPPER_EN_PIN, Config::R_SENSE, Config::DRIVER_ADDR);
   pump.begin();
 
   lastWiFiRetryTime = millis();
@@ -80,17 +82,23 @@ void loop()
     firstLoop = false;
   }
 
-  // WiFi connection and health logic
-  handleWiFi(currentTime, lastWiFiRetryTime);
-
   // Button and menu handling
   HomeHandler();
+  ManualHandler();
 
   // Display update
   updateDisplayStatus();
 
   // Dosing logic
   pump.runDosing();
+
+  // Prevent further processing if in dosing mode
+  // for reduced latency and responsiveness
+  if (pump.getMode() == PumpMode::DOSING)
+    return;
+
+  // WiFi connection and health logic
+  handleWiFi(currentTime, lastWiFiRetryTime);
 
   // // Data sync
   // if (wifi.isConnected() && currentTime - lastSyncTime >= SYNC_INTERVAL) {
