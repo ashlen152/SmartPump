@@ -44,51 +44,40 @@ long PumpController::getDistanceToGo()
   return stepper.distanceToGo();
 }
 
+/**
+ * runDosing() should only be called when mode is set to PumpMode::DOSING.
+ * Caller must set mode = PumpMode::DOSING before invoking this function.
+ */
 void PumpController::runDosing()
 {
-  if (mode == PumpMode::DOSING && isEnable)
+  if (mode != PumpMode::DOSING || !isEnable)
+    return;
+
+  // Always check actual distance remaining
+  long remaining = abs(getDistanceToGo());
+
+  if (remaining <= 0)
   {
-    // Always check actual distance remaining
-    long remaining = abs(getDistanceToGo());
-
-    if (remaining > 0)
-    {
-      for (int i = 0; i < 10; i++)
-      {
-        if (getDistanceToGo() != 0)
-        {
-          stepper.run();
-        }
-      }
-
-      if (getCurrentPosition() != lastPosition)
-      {
-        lastMoveTime = millis();
-        lastPosition = getCurrentPosition();
-      }
-
-      // Print debug info periodically
-      if (millis() - lastDebugTime > 1000)
-      {
-        Serial.printf("Position: %ld/%ld, Remaining: %ld\n",
-                      getCurrentPosition(), getDistanceToGo(), remaining);
-        lastDebugTime = millis();
-      }
-    }
-    else
-    {
-      // No more steps to move - movement complete
-      stop();
-      Serial.println("Dosing complete - target reached");
-    }
+    // Movement complete
+    stop();
+    Serial.println("Dosing complete - target reached");
+    return;
   }
+
+#ifdef PUMP_DEBUG_LOG
+  if (millis() - lastDebugTime > 1000)
+  {
+    Serial.printf("Current: %ld, Target: %ld, Remaining: %ld\n",
+                  getCurrentPosition(), stepper.targetPosition(), remaining);
+    lastDebugTime = millis();
+  }
+#endif
 }
 
 void PumpController::stop()
 {
   currentSpeed = 0;
   mode = PumpMode::HOLDING;
-  stepper.setCurrentPosition(0); // Reset position to 0 after move
   stepper.stop();
   disablePump();
 }
@@ -101,6 +90,17 @@ void PumpController::moveToPosition(long position)
 void PumpController::moveRelative(long steps)
 {
   stepper.move(steps);
+}
+
+void PumpController::updateCurrentPosition()
+{
+  long currentPosition = getCurrentPosition();
+
+  if (currentPosition != lastPosition)
+  {
+    lastMoveTime = millis();
+    lastPosition = currentPosition;
+  }
 }
 
 void PumpController::enablePump()
@@ -123,7 +123,7 @@ void PumpController::moveML(float ml)
   stepper.setCurrentPosition(0);
 
   // Calculate required steps using calibrated value
-  long steps = (long)(ml * getStepsPerML());
+  long steps = lroundf(ml * getStepsPerML());
   Serial.printf("moveML: Moving %.2f mL = %ld steps (stepsPerML: %.2f)\n",
                 ml, steps, getStepsPerML());
 
@@ -146,7 +146,7 @@ void PumpController::setCurrentPosition(int32_t position)
 
 void PumpController::setSpeed(float speed)
 {
-  currentSpeed = constrain(speed, 0, stepper.maxSpeed());
+  currentSpeed = constrain(speed, 0.0f, stepper.maxSpeed() * 1.0f);
 }
 
 bool PumpController::isRunning()

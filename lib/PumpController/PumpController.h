@@ -32,7 +32,7 @@ public:
   void stop();
   void moveToPosition(long position); // Absolute position
   void moveRelative(long steps);      // Relative movement
-  void moveML(float ml);              // Move by volume (ml)
+  void moveML(float ml); // Move by volume (ml)
 
   // Position & State
   long getCurrentPosition();
@@ -101,6 +101,7 @@ private:
 
   void enablePump();
   void disablePump();
+  void updateCurrentPosition();
 };
 
 #endif
