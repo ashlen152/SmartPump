@@ -36,9 +36,9 @@ public:
 
   // Position & State
   long getCurrentPosition();
+  long getDistanceToGo();
   void setCurrentPosition(int32_t position);
-  bool isEnabled() const { return enabled; }
-  bool isMoving() const { return enabled && moving; }
+  bool getIsEnable() const { return isEnable; }
 
   // Calibration & Steps
   float getStepsPerML() const
@@ -62,6 +62,7 @@ public:
   void setPeristalticStepsPerML(float steps) { peristalticStepsPerML = steps; }
 
   // Speed & Acceleration
+  bool isRunning();
   void setAcceleration(float accel);
   void setMicrosteps(uint16_t ms);
   void setSpeed(float speed);
@@ -82,9 +83,8 @@ private:
   uint8_t enPin;
 
   // State
-  bool enabled = false;
+  bool isEnable = false;
   PumpMode mode = PumpMode::HOLDING;
-  bool moving = false;
   unsigned long lastMoveTime = 0;
   unsigned long lastDebugTime = 0;
   unsigned long holdDelay = 0;
@@ -99,9 +99,8 @@ private:
   int speedStep = 2000;
   int maxSpeedStep = 4000;
 
-  // Helpers
-  bool isMovementComplete();
-  bool updateMoving();
+  void enablePump();
+  void disablePump();
 };
 
 #endif

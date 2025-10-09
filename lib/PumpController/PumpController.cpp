@@ -2,10 +2,10 @@
 
 void PumpController::init(Stream *serialPort, uint8_t stepPin, uint8_t dirPin, uint8_t enablePin, float rSense, uint8_t addr)
 {
-    // Reinitialize driver using placement new to avoid assignment
-    new (&driver) TMC2209Stepper(serialPort, rSense, addr);
-    stepper = AccelStepper(AccelStepper::DRIVER, stepPin, dirPin);
-    enPin = enablePin;
+  // Reinitialize driver using placement new to avoid assignment
+  new (&driver) TMC2209Stepper(serialPort, rSense, addr);
+  stepper = AccelStepper(AccelStepper::DRIVER, stepPin, dirPin);
+  enPin = enablePin;
 }
 
 PumpController &PumpController::getInstance()
@@ -32,89 +32,87 @@ void PumpController::begin()
 
 void PumpController::runPeristaltic()
 {
-  if (enabled && currentSpeed > 0)
+  if (isEnable && currentSpeed > 0)
   {
     stepper.setSpeed(currentSpeed);
     stepper.runSpeed();
   }
 }
 
+long PumpController::getDistanceToGo()
+{
+  return stepper.distanceToGo();
+}
+
 void PumpController::runDosing()
 {
-  if (mode == PumpMode::DOSING && enabled)
+  if (mode == PumpMode::DOSING && isEnable)
   {
     // Always check actual distance remaining
-    long remaining = abs(stepper.distanceToGo());
+    long remaining = abs(getDistanceToGo());
 
     if (remaining > 0)
     {
-      // Still have steps to move
-      moving = true;
-
-      // Ensure motor is enabled
-      digitalWrite(enPin, LOW);
-
-      // Run multiple steps per call for faster movement
       for (int i = 0; i < 10; i++)
       {
-        if (stepper.distanceToGo() != 0)
+        if (getDistanceToGo() != 0)
         {
           stepper.run();
         }
       }
 
-      if (stepper.currentPosition() != lastPosition)
+      if (getCurrentPosition() != lastPosition)
       {
         lastMoveTime = millis();
-        lastPosition = stepper.currentPosition();
+        lastPosition = getCurrentPosition();
       }
 
       // Print debug info periodically
       if (millis() - lastDebugTime > 1000)
       {
         Serial.printf("Position: %ld/%ld, Remaining: %ld\n",
-                      stepper.currentPosition(), stepper.targetPosition(), remaining);
+                      getCurrentPosition(), getDistanceToGo(), remaining);
         lastDebugTime = millis();
       }
     }
     else
     {
       // No more steps to move - movement complete
-      mode = PumpMode::HOLDING;
-      moving = false;
-      enabled = false;
-      currentSpeed = 0;
-      digitalWrite(enPin, HIGH);     // Disable driver
-      stepper.setCurrentPosition(0); // Reset position to 0 after move
+      stop();
       Serial.println("Dosing complete - target reached");
-    }
-  }
-  else if (mode == PumpMode::HOLDING)
-  {
-    if (millis() - lastMoveTime >= holdDelay)
-    {
-      mode = PumpMode::DOSING; // Ready for next move
     }
   }
 }
 
 void PumpController::stop()
 {
-  enabled = false;
-  moving = false;
   currentSpeed = 0;
-  digitalWrite(enPin, HIGH);
   mode = PumpMode::HOLDING;
+  stepper.setCurrentPosition(0); // Reset position to 0 after move
   stepper.stop();
+  disablePump();
 }
 
 void PumpController::moveToPosition(long position)
 {
-  enabled = true;
-  currentSpeed = 0; // Use position mode
-  digitalWrite(enPin, LOW);
   stepper.moveTo(position);
-  moving = true;
+}
+
+void PumpController::moveRelative(long steps)
+{
+  stepper.move(steps);
+}
+
+void PumpController::enablePump()
+{
+  digitalWrite(enPin, LOW);
+  isEnable = true;
+}
+
+void PumpController::disablePump()
+{
+  digitalWrite(enPin, HIGH);
+  isEnable = false;
 }
 
 void PumpController::moveML(float ml)
@@ -129,6 +127,7 @@ void PumpController::moveML(float ml)
   Serial.printf("moveML: Moving %.2f mL = %ld steps (stepsPerML: %.2f)\n",
                 ml, steps, getStepsPerML());
 
+  enablePump();
   // Move relative to new zero position
   moveRelative(steps);
   Serial.printf("moveML: Target position: %ld, Started from: %ld\n",
@@ -148,33 +147,11 @@ void PumpController::setCurrentPosition(int32_t position)
 void PumpController::setSpeed(float speed)
 {
   currentSpeed = constrain(speed, 0, stepper.maxSpeed());
-  enabled = (currentSpeed > 0);
-  digitalWrite(enPin, !enabled); // LOW = enabled
-  moving = false;
 }
 
-bool PumpController::updateMoving()
+bool PumpController::isRunning()
 {
-  if (mode == PumpMode::DOSING)
-  {
-    moving = stepper.isRunning();
-  }
-
-  return moving;
-}
-
-bool PumpController::isMovementComplete()
-{
-  if (moving)
-  {
-    if (mode == PumpMode::DOSING)
-    {
-      mode = PumpMode::HOLDING;
-      lastMoveTime = millis();
-      return true;
-    }
-  }
-  return false;
+  return stepper.isRunning();
 }
 
 void PumpController::setAcceleration(float accel)
