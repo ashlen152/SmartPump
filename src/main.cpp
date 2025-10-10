@@ -11,6 +11,7 @@
 #include "ViewController/Home/HomeHandler.h"
 #include "ViewController/Menu/MenuHandler.h"
 #include "ViewController/Manual/ManualHandler.h"
+#include "ViewController/Calibrate/CalibrateHandler.h"
 
 // #include <ArduinoJson.h>
 // #include "PumpController.h"
@@ -85,6 +86,8 @@ void loop()
   // Button and menu handling
   HomeHandler();
   ManualHandler();
+  CalibrateHandler();
+  MenuHandler();
 
   // Display update
   updateDisplayStatus();

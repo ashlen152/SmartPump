@@ -43,12 +43,6 @@ void beginCalibrateDosingController(bool isInBegin)
     }
     else
     {
-        // Prepare system
-        pump.stop();
-        pump.setCurrentPosition(0);
-        pump.setMode(PumpMode::DOSING);
-        pump.setSpeed(DOSING_CAL_SPEED);
-
         display.showText("Ready to calibrate.\nPress Enable to start.");
         display.setState(DisplayManager::DisplayState::CALIBRATE_BEGIN);
     }
@@ -73,8 +67,8 @@ void progressCalibrateDosingController(bool isInProgress)
         // Periodic display update
         if (millis() - displayUpdate >= 1000)
         {
-            display.showText("Calibrating...");
-            display.setContextCalibrateProgress(currentPosition, DOSING_CAL_STEPS, wifi.getCurrentTime());
+            // TODO: Add progress details
+            //    display.setContextCalibrateProgress(currentPosition, DOSING_CAL_STEPS, wifi.getCurrentTime());
             displayUpdate = millis();
         }
 
@@ -96,6 +90,12 @@ void progressCalibrateDosingController(bool isInProgress)
     }
     else
     {
+        // Prepare system
+        pump.stop();
+        pump.setCurrentPosition(0);
+        pump.setMode(PumpMode::DOSING);
+        pump.setSpeed(DOSING_CAL_SPEED);
+
         // Start calibration movement
         pump.moveRelative(DOSING_CAL_STEPS);
         startTime = millis();

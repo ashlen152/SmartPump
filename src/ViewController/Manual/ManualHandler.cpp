@@ -1,7 +1,6 @@
 #include "ManualHandler.h"
-#include "ViewController/Manual/ManualHandler.h"
 #include <DisplayManager.h>
-#include "ButtonController/ButtonController.h"
+#include "ViewController/Manual/ManualHandler.h"
 #include "ManualDosingController/ManualDosingController.h"
 
 static DisplayManager &display = DisplayManager::getInstance();
