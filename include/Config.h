@@ -1,4 +1,5 @@
 #pragma once
+#include <Arduino.h>
 // ======================================================
 // Configuration Constants (modern constexpr version)
 // ======================================================

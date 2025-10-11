@@ -74,7 +74,7 @@ void progressCalibrateDosingController(bool isInProgress)
         if (millis() - displayUpdate >= 1000)
         {
             display.showText("Calibrating...");
-            display.setContextCalibrateProgress(currentPosition, DOSING_CAL_STEPS, wifi.getCurrentTime());
+            // display.setContextCalibrateProgress(currentPosition, DOSING_CAL_STEPS, wifi.getCurrentTime());
             displayUpdate = millis();
         }
 

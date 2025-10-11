@@ -21,9 +21,9 @@ void DisplayManager::updateDisplayState()
   display.clearDisplay();
 
   // States that are handled manually and should not auto-revert
-  bool isManualState = (currentState == DisplayState::CALIBRATION_START ||
-                        currentState == DisplayState::CALIBRATION_INPUT ||
-                        currentState == DisplayState::CALIBRATION_RESULT ||
+  bool isManualState = (currentState == DisplayState::CALIBRATE_BEGIN ||
+                        currentState == DisplayState::CALIBRATE_PROGRESS ||
+                        currentState == DisplayState::CALIBRATE_COMPLETE ||
                         currentState == DisplayState::DOSING_SETUP ||
                         currentState == DisplayState::DOSING_PROGRESS ||
                         currentState == DisplayState::DOSING_COMPLETE);
@@ -47,13 +47,13 @@ void DisplayManager::updateDisplayState()
   case DisplayState::SETTINGS:
     showSettingsInfo(m_ctx.currentSpeed, m_ctx.stepsPerML, m_ctx.speedStep);
     break;
-  case DisplayState::CALIBRATION_START:
+  case DisplayState::CALIBRATE_PROGRESS:
     showCalibrationStart(m_ctx.timeLeft);
     break;
-  case DisplayState::CALIBRATION_INPUT:
+  case DisplayState::CALIBRATE_BEGIN:
     showCalibrationInput(m_ctx.ml);
     break;
-  case DisplayState::CALIBRATION_RESULT:
+  case DisplayState::CALIBRATE_COMPLETE:
     showCalibrationResult(m_ctx.stepsPerML, m_ctx.speedStep);
     break;
   case DisplayState::DOSING_SETUP:
@@ -173,7 +173,7 @@ void DisplayManager::showSettingsInfo(int currentSpeed, float stepsPerML, int sp
 
 void DisplayManager::showCalibrationStart(int timeLeft)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATION_START))
+  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATE_PROGRESS))
     return;
 
   display.clearDisplay();
@@ -188,7 +188,7 @@ void DisplayManager::showCalibrationStart(int timeLeft)
 
 void DisplayManager::showCalibrationInput(float ml)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATION_INPUT))
+  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATE_BEGIN))
     return;
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -203,7 +203,7 @@ void DisplayManager::showCalibrationInput(float ml)
 
 void DisplayManager::showCalibrationResult(float stepsPerML, int speedStep)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATION_RESULT))
+  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATE_COMPLETE))
     return;
   display.clearDisplay();
   display.setCursor(0, 0);
