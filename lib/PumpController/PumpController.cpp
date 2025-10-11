@@ -1,12 +1,10 @@
+#include "Config.h"
 #include "PumpController.h"
 
-void PumpController::init(Stream *serialPort, uint8_t stepPin, uint8_t dirPin, uint8_t enablePin, float rSense, uint8_t addr)
-{
-  // Reinitialize driver using placement new to avoid assignment
-  new (&driver) TMC2209Stepper(serialPort, rSense, addr);
-  stepper = AccelStepper(AccelStepper::DRIVER, stepPin, dirPin);
-  enPin = enablePin;
-}
+PumpController::PumpController()
+    : driver(&Serial2, Config::R_SENSE, Config::DRIVER_ADDR),
+      stepper(AccelStepper::DRIVER, Config::STEP_PIN, Config::DIR_PIN),
+      enPin(Config::STEPPER_EN_PIN) {}
 
 PumpController &PumpController::getInstance()
 {

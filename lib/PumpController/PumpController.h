@@ -17,8 +17,6 @@ class PumpController
 public:
   // Singleton access
   static PumpController &getInstance();
-  // Constructor & Initialization
-  void init(Stream *serialPort, uint8_t stepPin, uint8_t dirPin, uint8_t enablePin, float rSense, uint8_t addr);
   void begin();
 
   // Mode Control
@@ -32,7 +30,7 @@ public:
   void stop();
   void moveToPosition(long position); // Absolute position
   void moveRelative(long steps);      // Relative movement
-  void moveML(float ml); // Move by volume (ml)
+  void moveML(float ml);              // Move by volume (ml)
 
   // Position & State
   long getCurrentPosition();

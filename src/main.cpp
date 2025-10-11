@@ -49,9 +49,6 @@ bool showingCalibrationResult = false;
 
 void setup()
 {
-  DisplayManager &display = DisplayManager::getInstance();
-  PumpController &pump = PumpController::getInstance();
-
   Serial.begin(115200);
   while (!Serial)
     ;
@@ -64,8 +61,10 @@ void setup()
   pinMode(BUTTON_SPEED_DOWN_PIN, INPUT_PULLUP);
   pinMode(BUTTON_MENU_PIN, INPUT_PULLUP);
 
+  DisplayManager &display = DisplayManager::getInstance();
+  PumpController &pump = PumpController::getInstance();
+
   display.begin();
-  pump.init(&Serial2, Config::STEP_PIN, Config::DIR_PIN, Config::STEPPER_EN_PIN, Config::R_SENSE, Config::DRIVER_ADDR);
   pump.begin();
 
   lastWiFiRetryTime = millis();
