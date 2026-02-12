@@ -1,28 +1,46 @@
-#ifndef WIFIMANAGER_H // Include guard
+/**
+ * @file WiFiManager.h
+ * @brief WiFi connectivity, HTTP client, and NTP time management for ESP32.
+ *
+ * Handles WiFi connection/reconnection, HTTP REST methods (GET/POST/PUT/DELETE),
+ * NTP time synchronization (Asia/Vietnam UTC+7), and signal strength monitoring.
+ *
+ * Singleton pattern - access via WiFiManager::getInstance().
+ *
+ * Server: Configured via WifiConfig.h (from .env or defaults)
+ * NTP: Asia pool servers, timezone ICT-7 (Vietnam UTC+7)
+ * HTTP timeout: 1 second
+ * NTP re-sync: every hour
+ *
+ * @note All WiFi operations run on Core 0 via NetworkTaskManager (non-blocking)
+ */
+
+#ifndef WIFIMANAGER_H
 #define WIFIMANAGER_H
 
 #include <WiFi.h>
 #include <ArduinoHttpClient.h>
+#include "../../include/WifiConfig.h"  // For serverAddress and serverPort
 
 class WiFiManager
 {
 private:
   const char *_ssid;
   const char *_password;
-  const int MAX_ATTEMPTS = 20;
-  const String _serverAddress = "192.168.68.108";
-  const int _port = 3000;
-  const int HTTP_TIMEOUT = 1000;    // Timeout for HTTP requests
-  const int MIN_RSSI = -80;         // Minimum RSSI for a good connection
-  WiFiClient wifiClient;            // WiFi client for HTTP
-  HttpClient *httpClient = nullptr; // Pointer to HttpClient, initialized later
+  const int MAX_ATTEMPTS = 20;              ///< Max WiFi connection retry attempts
+  String _serverAddress;                    ///< Backend server IP (from WifiConfig.h)
+  int _port;                                ///< Backend server port (from WifiConfig.h)
+  const int HTTP_TIMEOUT = 1000;            ///< HTTP request timeout (ms)
+  const int MIN_RSSI = -80;                 ///< Minimum acceptable RSSI (dBm)
+  WiFiClient wifiClient;                    ///< Underlying WiFi client
+  HttpClient *httpClient = nullptr;         ///< HTTP client, initialized on first connect
 
-  unsigned long lastTimeSync = 0;         // Last time we synced with NTP
-  unsigned long lastTimeUpdate = 0;       // Last time we updated the local time string
-  time_t lastSyncedTime = 0;              // The time we got from last NTP sync
-  const int TIME_SYNC_INTERVAL = 3600000; // Sync with NTP every hour (in ms)
-  const int TIME_UPDATE_INTERVAL = 1000;  // Update displayed time every second (in ms)
-  bool timeInitialized = false;           // Flag to track if time was ever initialized
+  unsigned long lastTimeSync = 0;           ///< Last NTP sync timestamp (millis)
+  unsigned long lastTimeUpdate = 0;         ///< Last time string update (millis)
+  time_t lastSyncedTime = 0;               ///< Epoch time from last NTP sync
+  const int TIME_SYNC_INTERVAL = 3600000;   ///< NTP re-sync interval: 1 hour (ms)
+  const int TIME_UPDATE_INTERVAL = 1000;    ///< Display time update interval: 1 sec (ms)
+  bool timeInitialized = false;             ///< True after first successful NTP sync
 
 public:
   static WiFiManager &getInstance();
@@ -42,6 +60,15 @@ public:
   bool checkApiHealth();
   void configureTime(const char *ntpServer = "pool.ntp.org", const char *timezone = "UTC");
   const char *getCurrentTime();
+  
+  // High-level methods for NetworkTaskManager
+  bool connect();                                   // Auto-connect using hardcoded credentials
+  void syncTime();                                  // Sync time via NTP
+  time_t getCurrentTimeEpoch();                     // Get epoch time
+  bool getPumpSettings(String &response);           // GET pump settings from server
+  bool updatePumpSettings(const String &payload);   // POST pump settings to server
+  bool checkServerHealth();                         // Check server health endpoint
+  bool postDoseLog(const String &payload);          // POST dose history to server (Phase 2)
 
 private:
   WiFiManager(); // private constructor

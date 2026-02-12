@@ -1,3 +1,28 @@
+/**
+ * @file ManualDosingController.cpp
+ * @brief Implementation of manual dosing 4-step flow.
+ *
+ * Step 1 - beginManualDosingController (DOSING_MANUAL_BEGIN):
+ *   User adjusts target volume (default 10mL, +/- 0.1mL per press).
+ *   Enable=cancel, Menu=proceed to Step 2.
+ *
+ * Step 2 - startManualDosingController (DOSING_MANUAL_START):
+ *   User adjusts duration (default 1 min, +/- 1 min per press, min=1).
+ *   Enable=cancel, Menu=proceed to Step 3.
+ *
+ * Step 3 - progressManualDosingController (DOSING_MANUAL_PROGRESS):
+ *   Calls pump.moveML(volume) to start dosing.
+ *   Monitors pump.getDistanceToGo() for completion.
+ *   Shows real-time remaining volume on display.
+ *   Enable=cancel dosing.
+ *
+ * Step 4 - completeManualDosingController (DOSING_MANUAL_COMPLETE):
+ *   Shows completion screen with total volume dispensed.
+ *
+ * @note Duration is set but not actually used to control pump speed.
+ *       The pump runs at its configured speed regardless of duration setting.
+ */
+
 #include "ManualDosingController.h"
 #include <ButtonConfig.h>
 #include "ButtonController/ButtonController.h"
@@ -82,8 +107,10 @@ void progressManualDosingController(bool isInManualProgress)
     {
         if (pressButtonEnable())
         {
-            // TODO: implement stop dosing
-            // cancel dosing
+            // Stop the pump and cancel dosing
+            pump.stop();
+            display.showText("Dosing\nCancelled");
+            delay(1000);
             display.setState(DisplayManager::DisplayState::NORMAL);
         }
         float stepsPerML = pump.getDosingStepsPerML();

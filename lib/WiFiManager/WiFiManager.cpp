@@ -1,10 +1,12 @@
 
 #include "WiFiManager.h"
 #include <DisplayManager.h>
+#include "../../include/WifiConfig.h"
 
 WiFiManager::WiFiManager()
+  : _serverAddress(serverAddress), _port(serverPort)
 {
-  // constructor init if needed
+  // Initialize server address and port from WifiConfig.h
 }
 
 WiFiManager &WiFiManager::getInstance()
@@ -420,4 +422,54 @@ const char *WiFiManager::getCurrentTime()
   }
 
   return timeStr;
+}
+
+// High-level methods for NetworkTaskManager
+
+bool WiFiManager::connect()
+{
+  // Use credentials from WifiConfig.h
+  return connect(ssid, password);
+}
+
+void WiFiManager::syncTime()
+{
+  configureTime("asia.pool.ntp.org", "ICT-7");
+}
+
+time_t WiFiManager::getCurrentTimeEpoch()
+{
+  return time(nullptr);
+}
+
+bool WiFiManager::getPumpSettings(String &response)
+{
+  return get(PUMP_BY_ID_API, response);
+}
+
+bool WiFiManager::updatePumpSettings(const String &payload)
+{
+  String response;
+  return post(PUMP_SETTINGS_API, "application/json", payload.c_str(), response);
+}
+
+bool WiFiManager::postDoseLog(const String &payload)
+{
+  String response;
+  // Mock endpoint for testing - server implementation pending
+  const char* DOSE_LOG_API = "/api/dose-history";
+  bool success = post(DOSE_LOG_API, "application/json", payload.c_str(), response);
+  
+  if (success) {
+    Serial.println("[WiFiManager] Dose log posted successfully");
+  } else {
+    Serial.println("[WiFiManager] Failed to post dose log (server may not exist yet)");
+  }
+  
+  return success;
+}
+
+bool WiFiManager::checkServerHealth()
+{
+  return checkApiHealth();
 }

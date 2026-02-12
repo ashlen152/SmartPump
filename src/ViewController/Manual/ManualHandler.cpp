@@ -10,7 +10,7 @@ void ManualHandler()
 {
     if (!isInManual())
     {
-        beginManualDosingController(isInManualBegin());
+        beginManualDosingController(false);  // Initialize state (not already in state)
     }
     else if (isInManualBegin())
     {

@@ -1,3 +1,22 @@
+/**
+ * @file CalibrateDosingController.cpp
+ * @brief Calibration flow implementation for determining steps-per-mL ratio.
+ *
+ * Calibration process:
+ *   1. Begin: Show prompt, wait for Enable button to start
+ *   2. Progress: Run motor for DOSING_CAL_STEPS (200,000 steps) at 2000 steps/sec
+ *      - Shows progress on display with step count
+ *      - Detects completion, stall (no movement for 2s), or timeout (2 min)
+ *      - Enable button aborts calibration
+ *   3. Complete: User measures actual mL dispensed, adjusts with Up/Down (+/- 0.1mL)
+ *      - Enable button confirms: calculates newStepsPerML = 200000 / measuredML
+ *      - Saves new calibration to EEPROM at EEPROM_DOSING_STEPS_ADDR
+ *      - Menu button cancels without saving
+ *
+ * @note Functions are defined here but NOT declared in the header file.
+ *       See AGENTS.md Known Issues #8.
+ */
+
 #include "CalibrateDosingController.h"
 #include <ButtonConfig.h>
 #include "ButtonController/ButtonController.h"
@@ -73,8 +92,10 @@ void progressCalibrateDosingController(bool isInProgress)
         // Periodic display update
         if (millis() - displayUpdate >= 1000)
         {
-            display.showText("Calibrating...");
-            display.setContextCalibrateProgress(currentPosition, DOSING_CAL_STEPS, wifi.getCurrentTime());
+            char progressText[64];
+            snprintf(progressText, sizeof(progressText), "Calibrating...\n%ld / %ld steps\n%d%%", 
+                     currentPosition, DOSING_CAL_STEPS, (int)((currentPosition * 100) / DOSING_CAL_STEPS));
+            display.showText(progressText);
             displayUpdate = millis();
         }
 

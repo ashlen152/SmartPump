@@ -1,3 +1,24 @@
+/**
+ * @file DisplayManager.h
+ * @brief SSD1306 OLED display manager for SmartPump UI.
+ *
+ * Manages a 128x64 OLED display via I2C. Uses a state machine (DisplayState enum)
+ * to determine which screen to render. Display data is passed through a DisplayContext
+ * struct, which is populated by controllers before calling updateDisplayState().
+ *
+ * Singleton pattern - access via DisplayManager::getInstance().
+ *
+ * Screen hierarchy:
+ *   NORMAL -> MENU -> CALIBRATE_BEGIN/SETTINGS/DOSING_SETUP
+ *   DOSING_MANUAL_BEGIN -> DOSING_MANUAL_START -> DOSING_MANUAL_PROGRESS -> DOSING_MANUAL_COMPLETE
+ *   CALIBRATE_BEGIN -> CALIBRATE_PROGRESS -> CALIBRATE_COMPLETE
+ *
+ * @note Known bug: updateDisplayState() resets lastUpdate=0 on every call,
+ *       defeating the 200ms throttle. See AGENTS.md Known Issues #7.
+ * @note Known bug: DisplayManager.cpp references CALIBRATION_START/INPUT/RESULT
+ *       which don't exist in the enum. See AGENTS.md Known Issues #3.
+ */
+
 #ifndef DISPLAY_MANAGER_H
 #define DISPLAY_MANAGER_H
 
@@ -5,7 +26,12 @@
 #include <Wire.h>
 #include <vector>
 
-// Context struct for passing display state
+/**
+ * @struct DisplayContext
+ * @brief Data container passed to display rendering functions.
+ * Populated by controllers (DisplayUpdater, ManualDosingController, etc.)
+ * before calling updateDisplayState().
+ */
 struct DisplayContext
 {
     bool pumpEnabled = false;
@@ -53,6 +79,7 @@ public:
         DOSING_MANUAL_BEGIN,
         DOSING_MANUAL_PROGRESS,
         DOSING_MANUAL_COMPLETE,
+        DOSE_HISTORY,      // Phase 3 Sprint 6
         STATUS,
         INFO,
         ERROR,
@@ -111,6 +138,7 @@ public:
     void showDosingManualBegin(int du);
     void showDosingManualProgress(float volume, float remainingVolume, const char *remainingTime);
     void showDosingManualComplete(float totalVolume);
+    void showDoseHistory();  // Phase 3 Sprint 6
 
     // Display constants
     static const int SCREEN_WIDTH = 128;

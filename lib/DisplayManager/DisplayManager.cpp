@@ -1,4 +1,5 @@
 #include "DisplayManager.h"
+#include <time.h>
 
 DisplayManager::DisplayManager()
     : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET) {}
@@ -12,7 +13,6 @@ DisplayManager &DisplayManager::getInstance()
 // Call this in your main loop to update display every second
 void DisplayManager::updateDisplayState()
 {
-  lastUpdate = 0;
   unsigned long now = millis();
   if (now - lastUpdate < 200)
     return;
@@ -21,9 +21,9 @@ void DisplayManager::updateDisplayState()
   display.clearDisplay();
 
   // States that are handled manually and should not auto-revert
-  bool isManualState = (currentState == DisplayState::CALIBRATION_START ||
-                        currentState == DisplayState::CALIBRATION_INPUT ||
-                        currentState == DisplayState::CALIBRATION_RESULT ||
+  bool isManualState = (currentState == DisplayState::CALIBRATE_BEGIN ||
+                        currentState == DisplayState::CALIBRATE_PROGRESS ||
+                        currentState == DisplayState::CALIBRATE_COMPLETE ||
                         currentState == DisplayState::DOSING_SETUP ||
                         currentState == DisplayState::DOSING_PROGRESS ||
                         currentState == DisplayState::DOSING_COMPLETE);
@@ -47,13 +47,13 @@ void DisplayManager::updateDisplayState()
   case DisplayState::SETTINGS:
     showSettingsInfo(m_ctx.currentSpeed, m_ctx.stepsPerML, m_ctx.speedStep);
     break;
-  case DisplayState::CALIBRATION_START:
+  case DisplayState::CALIBRATE_BEGIN:
     showCalibrationStart(m_ctx.timeLeft);
     break;
-  case DisplayState::CALIBRATION_INPUT:
+  case DisplayState::CALIBRATE_PROGRESS:
     showCalibrationInput(m_ctx.ml);
     break;
-  case DisplayState::CALIBRATION_RESULT:
+  case DisplayState::CALIBRATE_COMPLETE:
     showCalibrationResult(m_ctx.stepsPerML, m_ctx.speedStep);
     break;
   case DisplayState::DOSING_SETUP:
@@ -67,6 +67,9 @@ void DisplayManager::updateDisplayState()
     break;
   case DisplayState::DOSING_COMPLETE:
     showDosingManualComplete(m_ctx.totalVolume);
+    break;
+  case DisplayState::DOSE_HISTORY:  // Phase 3 Sprint 6
+    showDoseHistory();
     break;
   case DisplayState::STATUS:
     updateStatus(m_ctx.pumpEnabled, m_ctx.value, m_ctx.currentTime, m_ctx.autodosingEnabled, m_ctx.nextSchedule);
@@ -173,7 +176,7 @@ void DisplayManager::showSettingsInfo(int currentSpeed, float stepsPerML, int sp
 
 void DisplayManager::showCalibrationStart(int timeLeft)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATION_START))
+  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATE_BEGIN))
     return;
 
   display.clearDisplay();
@@ -188,7 +191,7 @@ void DisplayManager::showCalibrationStart(int timeLeft)
 
 void DisplayManager::showCalibrationInput(float ml)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATION_INPUT))
+  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATE_PROGRESS))
     return;
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -203,7 +206,7 @@ void DisplayManager::showCalibrationInput(float ml)
 
 void DisplayManager::showCalibrationResult(float stepsPerML, int speedStep)
 {
-  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATION_RESULT))
+  if (isDisplayInUse(DisplayManager::DisplayState::CALIBRATE_COMPLETE))
     return;
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -334,6 +337,24 @@ void DisplayManager::showDosingManualComplete(float totalVolume)
   display.println(" mL");
 
   displaySignalStrength();
+  display.display();
+}
+
+// Phase 3 Sprint 6: Show dose history
+// Note: This will be called from updateDisplayState when state is DOSE_HISTORY
+// The history data should be fetched in the menu handler before setting the state
+void DisplayManager::showDoseHistory()
+{
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.setTextSize(1);
+  
+  display.println("=== Dose History ===");
+  display.println();
+  display.println("View from menu");
+  display.println("Press any button");
+  display.println("to exit");
+  
   display.display();
 }
 
