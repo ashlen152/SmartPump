@@ -70,7 +70,7 @@ struct NetworkCommandMessage {
     NetworkCommand command;
     uint32_t param1;        // Optional parameter (e.g., timeout, retry count)
     uint32_t param2;        // Optional parameter
-    char data[128];         // Optional data payload (e.g., JSON, URL)
+    char data[256];         // Optional data payload (e.g., JSON, URL) - Phase 4: Increased to 256 bytes
 };
 
 /**

@@ -48,6 +48,9 @@ AutoDosingManager::AutoDosingManager()
     , lastSyncTime(0)
     , paused(false)
     , pauseUntil(0)
+    , dosingState(DosingState::IDLE)  // Phase 4: Initialize state machine
+    , pendingDoseVolume(0.0f)
+    , dosingStartTime(0)
     , doseHistoryCount(0)
     , doseHistoryHead(0)
 {
@@ -386,20 +389,21 @@ void AutoDosingManager::checkAndDose() {
     for (auto &entry : schedule) {
         if (entry.hour == currentHour && 
             entry.minute == currentMinute && 
-            !entry.completed) {
+            !entry.completed &&
+            dosingState == DosingState::IDLE) {  // Phase 4: Only start if not already dosing
             
             AUTO_DOSING_LOG("✓ Dose time matched: %02d:%02d - %.2f ml", 
                            entry.hour, entry.minute, entry.ml);
             
             if (performDosing(entry.ml)) {
-                entry.completed = true;
-                logDosingEvent(entry.ml, true);
+                // Dose started successfully - state machine now IN_PROGRESS
+                entry.completed = true;  // Mark as completed so we don't retry next second
                 
                 // Update next dosing time
                 updateSchedule();
             } else {
-                AUTO_DOSING_LOG("✗ Dosing failed, will retry next minute");
-                logDosingEvent(entry.ml, false);
+                AUTO_DOSING_LOG("✗ Dosing failed to start");
+                // Don't log event if it didn't even start
             }
             
             // Only dose once per minute (avoid multiple triggers)
@@ -413,9 +417,8 @@ void AutoDosingManager::checkAndDose() {
 // ============================================================================
 
 bool AutoDosingManager::performDosing(float volume) {
-    // Null pointer checks
-    if (!m_initialized || !p_pump || !p_display) {
-        AUTO_DOSING_LOG("ERROR: Not initialized or null pointers");
+    if (!m_initialized) {
+        AUTO_DOSING_LOG("ERROR: performDosing() called before initialize()");
         return false;
     }
     
@@ -431,7 +434,7 @@ bool AutoDosingManager::performDosing(float volume) {
         return false;
     }
     
-    // Safety check: ensure pump is initialized
+    // Safety check: ensure pump is calibrated
     if (p_pump->getDosingStepsPerML() <= 0) {
         AUTO_DOSING_LOG("ERROR: Pump not calibrated (stepsPerML = 0)");
         return false;
@@ -439,14 +442,19 @@ bool AutoDosingManager::performDosing(float volume) {
     
     AUTO_DOSING_LOG(">>> Starting auto-dose: %.2f ml", volume);
     
+    // Phase 4: Log dosing START event before executing
+    logDosingEvent(volume, false, true);  // volume, success=false, isStart=true
+    
     // Execute dosing
     p_pump->setMode(PumpMode::DOSING);
     p_pump->moveML(volume);
     
-    // Update totals
-    totalDosedVolume += volume;
+    // Phase 4: Set state machine to IN_PROGRESS (do NOT update totals yet!)
+    dosingState = DosingState::IN_PROGRESS;
+    pendingDoseVolume = volume;
+    dosingStartTime = millis();
     
-    // Track day/night counts
+    // Track day/night counts (for logging purposes)
     time_t now = time(nullptr);
     struct tm *timeinfo = localtime(&now);
     if (timeinfo->tm_hour >= scheduleMeta.dayStartHour && 
@@ -462,8 +470,62 @@ bool AutoDosingManager::performDosing(float volume) {
     scheduleMeta.lastDoseVolume = volume;
     saveState();
     
-    AUTO_DOSING_LOG(">>> Auto-dose started successfully (Total today: %.2f ml)", totalDosedVolume);
+    AUTO_DOSING_LOG(">>> Auto-dose started, waiting for completion...");
     return true;
+}
+
+// ============================================================================
+// CORE FUNCTION 4B: updateDosingProgress() - NEW (Phase 4)
+// ============================================================================
+
+void AutoDosingManager::updateDosingProgress() {
+    if (!m_initialized) {
+        return;  // Silent return
+    }
+    
+    // Check if we're currently dosing
+    if (dosingState != DosingState::IN_PROGRESS) {
+        return;  // Nothing to update
+    }
+    
+    // Check if pump has finished
+    if (!p_pump->isRunning() && p_pump->getMode() == PumpMode::DOSING) {
+        // Dose complete!
+        unsigned long duration = millis() - dosingStartTime;
+        
+        AUTO_DOSING_LOG(">>> Auto-dose COMPLETED: %.2f ml in %lu ms", 
+                       pendingDoseVolume, duration);
+        
+        // Now update the total
+        totalDosedVolume += pendingDoseVolume;
+        saveState();
+        
+        // Log COMPLETE event to server
+        logDosingEvent(pendingDoseVolume, true, false);  // volume, success=true, isStart=false
+        
+        AUTO_DOSING_LOG("Total dosed today: %.2f ml (%.1f%% of daily target)", 
+                       totalDosedVolume,
+                       (totalDosedVolume / scheduleMeta.totalDailyVolume) * 100.0f);
+        
+        // Reset state machine
+        dosingState = DosingState::IDLE;
+        pendingDoseVolume = 0.0f;
+        dosingStartTime = 0;
+    }
+    
+    // Timeout check (safety: if dose takes > 5 minutes, something is wrong)
+    if (millis() - dosingStartTime > 300000) {  // 5 minutes
+        AUTO_DOSING_LOG("ERROR: Dose timeout! Aborting after 5 minutes");
+        p_pump->stop();
+        
+        // Log FAILED event
+        logDosingEvent(pendingDoseVolume, false, false);  // volume, success=false, isStart=false
+        
+        // Reset state without updating total (dose failed)
+        dosingState = DosingState::IDLE;
+        pendingDoseVolume = 0.0f;
+        dosingStartTime = 0;
+    }
 }
 
 // ============================================================================
@@ -612,6 +674,59 @@ void AutoDosingManager::saveState() {
 }
 
 // ============================================================================
+// SETTINGS SYNC (Phase 4)
+// ============================================================================
+
+void AutoDosingManager::syncSettings() {
+    if (!m_initialized) {
+        AUTO_DOSING_LOG("ERROR: syncSettings() called before initialize()");
+        return;
+    }
+    
+    AUTO_DOSING_LOG("Syncing settings to server...");
+    
+    // Build JSON payload with all current settings
+    JsonDocument doc;
+    
+    // Get pump ID from ConfigManager
+    ConfigManager& configMgr = ConfigManager::getInstance();
+    const char* pumpId = configMgr.getPumpId();
+    
+    // Build settings object
+    doc["pumpId"] = pumpId;
+    doc["enabled"] = scheduleMeta.enabled;
+    doc["dailyVolume"] = scheduleMeta.totalDailyVolume;
+    doc["dayStartHour"] = startHour;
+    doc["dayEndHour"] = endHour;
+    doc["dayPercent"] = (uint8_t)(percent1 * 100);  // Convert 0.0-1.0 to 0-100
+    doc["stepsPerML"] = p_pump->getDosingStepsPerML();
+    doc["activeProfile"] = p_pump->getActiveProfile();
+    doc["pausedUntil"] = pauseUntil;
+    
+    // Serialize to string
+    char jsonBuffer[256];
+    serializeJson(doc, jsonBuffer, sizeof(jsonBuffer));
+    
+    AUTO_DOSING_LOG("Settings payload: %s", jsonBuffer);
+    
+    // Queue POST command to Core 0 via NetworkTaskManager
+    NetworkTaskManager& netMgr = NetworkTaskManager::getInstance();
+    NetworkCommandMessage cmd;
+    cmd.command = NetworkCommand::HTTP_POST_SETTINGS;
+    cmd.param1 = 0;
+    cmd.param2 = 0;
+    strncpy(cmd.data, jsonBuffer, sizeof(cmd.data) - 1);
+    cmd.data[sizeof(cmd.data) - 1] = '\0';
+    
+    if (netMgr.sendCommand(cmd)) {
+        AUTO_DOSING_LOG("Settings sync queued successfully");
+    } else {
+        AUTO_DOSING_LOG("WARNING: Failed to queue settings sync (queue may be full)");
+    }
+}
+
+
+// ============================================================================
 // DEBUG/LOGGING FUNCTIONS
 // ============================================================================
 
@@ -669,33 +784,58 @@ void AutoDosingManager::printSchedule() const {
     }
 }
 
-void AutoDosingManager::logDosingEvent(float volume, bool success) {
-    AUTO_DOSING_LOG("=== Dosing Event ===");
+void AutoDosingManager::logDosingEvent(float volume, bool success, bool isStart) {
+    const char* statusStr = isStart ? "STARTED" : (success ? "COMPLETED" : "FAILED");
+    
+    AUTO_DOSING_LOG("=== Dosing Event: %s ===", statusStr);
     AUTO_DOSING_LOG("Time: %lu", time(nullptr));
     AUTO_DOSING_LOG("Volume: %.2f ml", volume);
-    AUTO_DOSING_LOG("Success: %s", success ? "YES" : "NO");
+    if (!isStart) {
+        AUTO_DOSING_LOG("Success: %s", success ? "YES" : "NO");
+    }
     AUTO_DOSING_LOG("Total Today: %.2f ml", totalDosedVolume);
     AUTO_DOSING_LOG("Remaining: %.2f ml", getRemainingDailyVolume());
     
-    // Phase 3 Sprint 6: Add to dose history
+    // Phase 3 Sprint 6: Add to dose history (only on complete, not on start)
     time_t now = time(nullptr);
     if (now == (time_t)-1) {
         now = lastSyncTime + ((millis() - lastSyncMillis) / 1000);
     }
-    addDoseToHistory((uint32_t)now, volume, success);
     
-    // Phase 2: POST dose log to server via Core 0
+    if (!isStart) {
+        addDoseToHistory((uint32_t)now, volume, success);
+    }
+    
+    // Phase 4: POST dose event to server via Core 0
     NetworkTaskManager& networkTask = NetworkTaskManager::getInstance();
     
     // Build JSON payload
     ConfigManager& configMgr = ConfigManager::getInstance();
     JsonDocument doc;
-    doc["timestamp"] = (unsigned long)time(nullptr);
-    doc["volume"] = volume;
-    doc["success"] = success;
-    doc["pumpId"] = configMgr.getPumpId();  // Get from ConfigManager
     
-    char jsonBuffer[200];
+    // Create unique event ID using timestamp in milliseconds
+    unsigned long eventId = (unsigned long)now * 1000 + (millis() % 1000);
+    
+    doc["pumpId"] = configMgr.getPumpId();
+    doc["eventId"] = String(eventId);
+    doc["timestamp"] = (unsigned long)now;
+    doc["volume"] = volume;
+    doc["status"] = isStart ? "started" : (success ? "completed" : "failed");
+    
+    // Add metadata
+    JsonObject metadata = doc["metadata"].to<JsonObject>();
+    metadata["totalToday"] = totalDosedVolume;
+    metadata["remaining"] = getRemainingDailyVolume();
+    metadata["isAuto"] = true;
+    
+    // Only set success field for completed/failed events
+    if (!isStart) {
+        doc["success"] = success;
+    } else {
+        doc["success"] = nullptr;  // null for started events
+    }
+    
+    char jsonBuffer[256];  // Increased buffer size for metadata
     serializeJson(doc, jsonBuffer, sizeof(jsonBuffer));
     
     // Queue POST command to Core 0 (non-blocking)
@@ -707,9 +847,9 @@ void AutoDosingManager::logDosingEvent(float volume, bool success) {
     cmd.data[sizeof(cmd.data) - 1] = '\0';
     
     if (networkTask.sendCommand(cmd, 0)) {
-        AUTO_DOSING_LOG("Dose log queued for POST to server");
+        AUTO_DOSING_LOG("Dose event (%s) queued for POST to server", statusStr);
     } else {
-        AUTO_DOSING_LOG("WARN: Failed to queue dose log (network queue full)");
+        AUTO_DOSING_LOG("WARN: Failed to queue dose event (network queue full)");
     }
 }
 

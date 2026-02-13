@@ -442,28 +442,19 @@ time_t WiFiManager::getCurrentTimeEpoch()
   return time(nullptr);
 }
 
-bool WiFiManager::getPumpSettings(String &response)
-{
-  return get(PUMP_BY_ID_API, response);
-}
-
-bool WiFiManager::updatePumpSettings(const String &payload)
-{
-  String response;
-  return post(PUMP_SETTINGS_API, "application/json", payload.c_str(), response);
-}
-
 bool WiFiManager::postDoseLog(const String &payload)
 {
   String response;
-  // Mock endpoint for testing - server implementation pending
-  const char* DOSE_LOG_API = "/api/dose-history";
+  // Phase 4: Updated endpoint for dose events (start/complete/failed)
+  const char* DOSE_LOG_API = "/api/dose-events";
   bool success = post(DOSE_LOG_API, "application/json", payload.c_str(), response);
   
   if (success) {
-    Serial.println("[WiFiManager] Dose log posted successfully");
+    Serial.println("[WiFiManager] Dose event posted successfully");
+    Serial.print("[WiFiManager] Payload: ");
+    Serial.println(payload);
   } else {
-    Serial.println("[WiFiManager] Failed to post dose log (server may not exist yet)");
+    Serial.println("[WiFiManager] Failed to post dose event (mockup - server may not exist)");
   }
   
   return success;
@@ -472,4 +463,35 @@ bool WiFiManager::postDoseLog(const String &payload)
 bool WiFiManager::checkServerHealth()
 {
   return checkApiHealth();
+}
+
+// Phase 4: Mockup GET pump settings
+bool WiFiManager::getPumpSettings(String &response)
+{
+  // Mockup: Return hardcoded default settings JSON
+  // Real implementation would call GET /api/pump-settings/{pumpId}
+  
+  Serial.println("[WiFiManager] getPumpSettings() - MOCKUP");
+  
+  // Simulate successful response with default settings
+  response = "{\"pumpId\":\"SmartPump_01\",\"enabled\":true,\"dailyVolume\":30.0,\"dayStartHour\":8,\"dayEndHour\":20,\"dayPercent\":70,\"stepsPerML\":12800.0,\"activeProfile\":1,\"pausedUntil\":0,\"lastSync\":1709876543}";
+  
+  Serial.println("[WiFiManager] Mockup response (hardcoded defaults):");
+  Serial.println(response);
+  
+  return true; // Mockup always succeeds
+}
+
+// Phase 4: Mockup POST pump settings
+bool WiFiManager::updatePumpSettings(const String &payload)
+{
+  // Mockup: Log to Serial and return success
+  // Real implementation would call POST /api/pump-settings
+  
+  Serial.println("[WiFiManager] updatePumpSettings() - MOCKUP");
+  Serial.print("[WiFiManager] Payload: ");
+  Serial.println(payload);
+  Serial.println("[WiFiManager] Mockup: Settings would be saved to server");
+  
+  return true; // Mockup always succeeds
 }

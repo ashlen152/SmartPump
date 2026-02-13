@@ -282,6 +282,10 @@ void loop()
       autoDosing.checkAndDose();
       lastDoseCheck = currentTime;
     }
+    
+    // Monitor dosing progress every loop iteration (Phase 4 Sprint 1)
+    // Detects pump completion and logs COMPLETE event to server
+    autoDosing.updateDosingProgress();
   }
 
   // WiFi connection is now handled by Core 0 background tasks

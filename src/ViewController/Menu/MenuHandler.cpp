@@ -36,6 +36,7 @@ void runMenuSelection()
       autoDosing.enable();
       display.showText("Auto Dosing\nEnabled");
     }
+    autoDosing.syncSettings();  // Phase 4: Sync to server
     delay(800);
     display.setState(DisplayManager::DisplayState::NORMAL);
   }
@@ -59,6 +60,7 @@ void runMenuSelection()
       }
       if (pressButtonEnable()) {
         autoDosing.setDailyVolume(volume);
+        autoDosing.syncSettings();  // Phase 4: Sync to server
         char msg[32];
         snprintf(msg, sizeof(msg), "Volume Saved\n%.0f mL", volume);
         display.showText(msg);
@@ -122,6 +124,7 @@ void runMenuSelection()
             settingStart = true;  // Go back to start hour
           } else {
             autoDosing.setDayPeriod(startH, endH);
+            autoDosing.syncSettings();  // Phase 4: Sync to server
             char msg[32];
             snprintf(msg, sizeof(msg), "Period Saved\n%02d:00-%02d:00", startH, endH);
             display.showText(msg);
@@ -169,6 +172,7 @@ void runMenuSelection()
           delay(2000);
         }
         autoDosing.setDayNightSplit(dayPercent);
+        autoDosing.syncSettings();  // Phase 4: Sync to server
         char msg[32];
         snprintf(msg, sizeof(msg), "Split Saved\n%d%% / %d%%", dayPercent, 100 - dayPercent);
         display.showText(msg);
@@ -475,6 +479,7 @@ void runMenuSelection()
       }
       if (pressButtonEnable()) {  // SWAPPED: Enable confirms
         pump.setSpeedProfile(profile);
+        AutoDosingManager::getInstance().syncSettings();  // Phase 4: Sync to server
         display.showText("Profile Set");
         delay(800);
         selecting = false;

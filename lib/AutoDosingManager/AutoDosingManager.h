@@ -113,6 +113,7 @@ public:
     uint8_t getDayPercent() const { return (uint8_t)(percent1 * 100); }
     void updateSchedule();
     void checkAndDose();
+    void updateDosingProgress();  // Phase 4: Check and complete in-progress doses
     bool isEnabled() const { return scheduleMeta.enabled; }
     uint32_t getNextDosingTime() const { return scheduleMeta.nextDosingTime; }
     float getRemainingDailyVolume() const;
@@ -135,6 +136,9 @@ public:
     time_t getLastSyncTime() const { return lastSyncTime; }
     float getTotalDosedVolume() const { return totalDosedVolume; }
     
+    // Settings sync (Phase 4)
+    void syncSettings();  // POST current settings to server
+    
     // Debug functions
     void printStatus() const;
     void printSchedule() const;
@@ -147,7 +151,7 @@ private:
     
     void generateWeightedSchedule(int slots, float totalMl, int startHour, int endHour, float percent1, float percent2);
     bool performDosing(float volume);
-    void logDosingEvent(float volume, bool success);
+    void logDosingEvent(float volume, bool success, bool isStart = false);  // Phase 4: Added isStart parameter
     
     // Dose History helpers (Phase 3 Sprint 6)
     void addDoseToHistory(uint32_t timestamp, float volume, bool success);
@@ -175,6 +179,12 @@ private:
     // Pause state (Phase 3 Sprint 5)
     bool paused;              ///< Whether auto-dosing is currently paused
     uint32_t pauseUntil;      ///< Unix timestamp when pause expires (0 = indefinite)
+    
+    // Dosing state machine (Phase 4 Sprint 1 - Fix)
+    enum class DosingState { IDLE, IN_PROGRESS };
+    DosingState dosingState;       ///< Current dosing operation state
+    float pendingDoseVolume;       ///< Volume of dose currently in progress
+    unsigned long dosingStartTime; ///< millis() when current dose started
     
     // Dose History (Phase 3 Sprint 6)
     static constexpr uint8_t DOSE_HISTORY_SIZE = 5;
