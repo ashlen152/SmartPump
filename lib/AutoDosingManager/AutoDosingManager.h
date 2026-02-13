@@ -130,6 +130,11 @@ public:
     const DoseHistoryEntry* getDoseHistory(uint8_t& count) const;  // Returns array of history entries and count
     void clearDoseHistory();                 // Clear all history entries
     
+    // Getter methods for time fallback and totals (Phase 3 Sprint 10)
+    uint32_t getLastSyncMillis() const { return lastSyncMillis; }
+    time_t getLastSyncTime() const { return lastSyncTime; }
+    float getTotalDosedVolume() const { return totalDosedVolume; }
+    
     // Debug functions
     void printStatus() const;
     void printSchedule() const;

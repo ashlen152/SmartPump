@@ -243,6 +243,28 @@ void loop()
     }
   }
 
+  // Midnight detection and daily volume reset (Phase 3 Sprint 10)
+  {
+    static int lastDay = -1;
+    time_t now = time(nullptr);
+    
+    if (now > 0) {  // Only if time is synced
+      struct tm* timeInfo = localtime(&now);
+      int currentDay = timeInfo->tm_mday;
+      
+      if (lastDay == -1) {
+        // First run - initialize
+        lastDay = currentDay;
+        Serial.printf("[Main] Day tracking initialized: Day %d\n", currentDay);
+      } else if (currentDay != lastDay) {
+        // Day changed - midnight crossed
+        Serial.printf("[Main] ⏰ Midnight detected! Day %d -> %d\n", lastDay, currentDay);
+        AutoDosingManager::getInstance().resetDailyVolume();
+        lastDay = currentDay;
+      }
+    }
+  }
+
   // Auto-dosing check and execution (non-blocking)
   AutoDosingManager &autoDosing = AutoDosingManager::getInstance();
   if (autoDosing.isEnabled()) {

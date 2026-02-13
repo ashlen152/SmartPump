@@ -36,7 +36,7 @@ void runMenuSelection()
       autoDosing.enable();
       display.showText("Auto Dosing\nEnabled");
     }
-    delay(1500);
+    delay(800);
     display.setState(DisplayManager::DisplayState::NORMAL);
   }
   break;
@@ -55,7 +55,7 @@ void runMenuSelection()
         if (volume > 200.0f) volume = 200.0f;  // Max 200mL per day
       }
       if (pressButtonDown()) {
-        volume = max(volume - 1.0f, 1.0f);  // Min 1mL
+        volume = constrain(volume - 1.0f, 1.0f, 200.0f);  // Min 1mL, max 200mL
       }
       if (pressButtonEnable()) {
         autoDosing.setDailyVolume(volume);
@@ -88,10 +88,10 @@ void runMenuSelection()
     while (setting) {
       char label[32];
       if (settingStart) {
-        snprintf(label, sizeof(label), "Day Start Hour");
+        snprintf(label, sizeof(label), "Day Start Hour\nEn=-> M=X");
         display.showValue(label, (float)startH);
       } else {
-        snprintf(label, sizeof(label), "Day End Hour");
+        snprintf(label, sizeof(label), "Day End Hour\nEn=-> M=X");
         display.showValue(label, (float)endH);
       }
       
@@ -109,22 +109,28 @@ void runMenuSelection()
           endH = (endH == 0) ? 23 : endH - 1;
         }
       }
-      if (pressButtonMenu()) {
+      if (pressButtonEnable()) {  // SWAPPED: Enable now advances/saves
         if (settingStart) {
           settingStart = false;  // Switch to setting end hour
           display.showText("Now set end hour");
-          delay(800);
+          delay(500);
         } else {
-          // Both set, now save
-          autoDosing.setDayPeriod(startH, endH);
-          char msg[32];
-          snprintf(msg, sizeof(msg), "Period Saved\n%02d:00-%02d:00", startH, endH);
-          display.showText(msg);
-          delay(1500);
-          setting = false;
+          // Validate and save
+          if (startH == endH) {
+            display.showText("Error: Start/End\ncan't be same hour");
+            delay(2000);
+            settingStart = true;  // Go back to start hour
+          } else {
+            autoDosing.setDayPeriod(startH, endH);
+            char msg[32];
+            snprintf(msg, sizeof(msg), "Period Saved\n%02d:00-%02d:00", startH, endH);
+            display.showText(msg);
+            delay(800);
+            setting = false;
+          }
         }
       }
-      if (pressButtonEnable()) {
+      if (pressButtonMenu()) {  // SWAPPED: Menu now cancels
         display.showText("Cancelled");
         delay(500);
         setting = false;  // Cancel without saving
@@ -157,11 +163,16 @@ void runMenuSelection()
         else dayPercent = 0;
       }
       if (pressButtonEnable()) {
+        // Warn on extreme splits
+        if (dayPercent == 0 || dayPercent == 100) {
+          display.showText("Warning: 100% in\none period only");
+          delay(2000);
+        }
         autoDosing.setDayNightSplit(dayPercent);
         char msg[32];
         snprintf(msg, sizeof(msg), "Split Saved\n%d%% / %d%%", dayPercent, 100 - dayPercent);
         display.showText(msg);
-        delay(1000);
+        delay(500);
         setting = false;
       }
       if (pressButtonMenu()) {
@@ -191,7 +202,7 @@ void runMenuSelection()
     while (editing) {
       // Show current ID with cursor
       char displayBuf[32];
-      snprintf(displayBuf, sizeof(displayBuf), "ID:%s\nPos:%d", newId, cursorPos + 1);
+      snprintf(displayBuf, sizeof(displayBuf), "ID:%s\nPos:%d En=OK/-> M=X", newId, cursorPos + 1);
       display.showText(displayBuf);
       
       if (pressButtonUp()) {
@@ -213,7 +224,7 @@ void runMenuSelection()
       }
       
       if (pressButtonDown()) {
-        // Move cursor or delete character
+        // Delete last character (keep as-is per Q2: Option A)
         if (idLen > 0 && cursorPos == idLen - 1) {
           // Delete last character
           newId[idLen - 1] = '\0';
@@ -222,23 +233,28 @@ void runMenuSelection()
         }
       }
       
-      if (pressButtonMenu()) {
+      if (pressButtonEnable()) {  // SWAPPED: Enable now advances/saves
         // Move cursor right (or save if at end)
         if (cursorPos < idLen - 1) {
           cursorPos++;
         } else {
-          // Save and exit
-          if (config.setPumpId(newId)) {
+          // Validate before saving
+          if (idLen == 0) {
+            display.showText("Error: ID cannot\nbe empty");
+            delay(1500);
+          } else if (config.setPumpId(newId)) {
             display.showText("Pump ID Saved");
+            delay(500);
+            editing = false;
           } else {
             display.showText("Invalid ID");
+            delay(500);
+            editing = false;
           }
-          delay(1000);
-          editing = false;
         }
       }
       
-      if (pressButtonEnable()) {
+      if (pressButtonMenu()) {  // SWAPPED: Menu now cancels
         display.showText("Cancelled");
         delay(500);
         editing = false;
@@ -252,24 +268,24 @@ void runMenuSelection()
   
   case 7: // Reset Config (Factory Reset)
   {
-    display.showText("Factory Reset?\nMenu=YES\nEnable=NO");
+    display.showText("Factory Reset?\nEnable=YES\nMenu=NO");
     delay(100);
     
     bool waiting = true;
     while (waiting) {
-      if (pressButtonMenu()) {
+      if (pressButtonEnable()) {  // SWAPPED: Enable confirms
         display.showText("Resetting...");
-        delay(500);
+        delay(300);
         
         ConfigManager &config = ConfigManager::getInstance();
         config.resetToDefaults();
         
         display.showText("Reset Complete\nRestarting...");
-        delay(2000);
+        delay(1500);
         ESP.restart();  // Restart ESP32
         waiting = false;
       }
-      if (pressButtonEnable()) {
+      if (pressButtonMenu()) {  // SWAPPED: Menu cancels
         display.showText("Cancelled");
         delay(500);
         waiting = false;
@@ -292,7 +308,7 @@ void runMenuSelection()
     bool selecting = true;
     while (selecting) {
       char buffer[32];
-      snprintf(buffer, sizeof(buffer), "Pause:\n%s\nMenu=OK Enable=Cancel", pauseOptions[pauseIndex]);
+      snprintf(buffer, sizeof(buffer), "Pause:\n%s\nEnable=OK Menu=Cancel", pauseOptions[pauseIndex]);
       display.showText(buffer);
       delay(100);
       
@@ -302,13 +318,13 @@ void runMenuSelection()
       if (pressButtonDown()) {
         pauseIndex = (pauseIndex + 1) % pauseOptionCount;
       }
-      if (pressButtonMenu()) {
+      if (pressButtonEnable()) {  // SWAPPED: Enable confirms
         autoDosing.pause(pauseDurations[pauseIndex]);
         display.showText("Paused");
-        delay(1000);
+        delay(800);
         selecting = false;
       }
-      if (pressButtonEnable()) {
+      if (pressButtonMenu()) {  // SWAPPED: Menu cancels
         display.showText("Cancelled");
         delay(500);
         selecting = false;
@@ -325,20 +341,20 @@ void runMenuSelection()
     
     if (!autoDosing.isPaused()) {
       display.showText("Not Paused");
-      delay(1000);
+      delay(800);
     } else {
-      display.showText("Resume?\nMenu=YES\nEnable=NO");
+      display.showText("Resume?\nEnable=YES\nMenu=NO");
       delay(100);
       
       bool waiting = true;
       while (waiting) {
-        if (pressButtonMenu()) {
+        if (pressButtonEnable()) {  // SWAPPED: Enable confirms
           autoDosing.resume();
           display.showText("Resumed");
-          delay(1000);
+          delay(800);
           waiting = false;
         }
-        if (pressButtonEnable()) {
+        if (pressButtonMenu()) {  // SWAPPED: Menu cancels
           display.showText("Cancelled");
           delay(500);
           waiting = false;
@@ -350,31 +366,76 @@ void runMenuSelection()
   }
   break;
   
-  case 10: // Dose History (Phase 3 Sprint 6)
+  case 10: // Dose History - Today's Summary (Phase 3 Sprint 10)
   {
     AutoDosingManager &autoDosing = AutoDosingManager::getInstance();
+    
+    // Use millis() fallback if time not synced (Decision 5=B)
+    time_t now = time(nullptr);
+    if (now == 0) {
+      // Time not synced - use fallback
+      if (autoDosing.getLastSyncTime() > 0 && autoDosing.getLastSyncMillis() > 0) {
+        uint32_t elapsedSeconds = (millis() - autoDosing.getLastSyncMillis()) / 1000;
+        now = autoDosing.getLastSyncTime() + elapsedSeconds;
+      } else {
+        // No fallback available
+        display.showText("Time not synced\nCannot show history");
+        delay(2000);
+        display.setState(DisplayManager::DisplayState::NORMAL);
+        break;
+      }
+    }
+    
+    // Calculate today's start time (midnight 00:00:00)
+    struct tm* nowInfo = localtime(&now);
+    struct tm dayStart = *nowInfo;
+    dayStart.tm_hour = 0;
+    dayStart.tm_min = 0;
+    dayStart.tm_sec = 0;
+    time_t dayStartTime = mktime(&dayStart);
+    
+    // Get ring buffer history
     uint8_t count = 0;
     const DoseHistoryEntry* history = autoDosing.getDoseHistory(count);
     
-    // Format history for display
-    char historyText[256];
-    int offset = snprintf(historyText, sizeof(historyText), "=Dose History=\n");
+    // Filter doses from today and count them
+    uint8_t todayCount = 0;
+    DoseHistoryEntry todayDoses[5];  // Max 5 from ring buffer
     
-    if (count == 0) {
+    for (uint8_t i = 0; i < count; i++) {
+      if (history[i].timestamp >= dayStartTime) {
+        todayDoses[todayCount++] = history[i];
+      }
+    }
+    
+    // Use totalDosedVolume for accurate total (Decision 1=A)
+    // Note: This assumes midnight reset has run for current day
+    float accurateTotalMl = autoDosing.getTotalDosedVolume();
+    
+    // Format display
+    char historyText[256];
+    int offset = snprintf(historyText, sizeof(historyText), 
+                          "=Today's Doses=\nTotal: %.1fmL (%d doses)", 
+                          accurateTotalMl, todayCount);
+    
+    if (todayCount == 0) {
       offset += snprintf(historyText + offset, sizeof(historyText) - offset, 
-                         "\nNo doses yet");
+                         "\n\nNo doses today");
     } else {
-      for (uint8_t i = 0; i < count && i < 5; i++) {
-        time_t t = history[i].timestamp;
+      // Show up to 3 most recent doses (to fit on screen)
+      for (uint8_t i = 0; i < todayCount && i < 3; i++) {
+        time_t t = todayDoses[i].timestamp;  // Convert uint32_t to time_t
         struct tm* timeinfo = localtime(&t);
-        
-        // Format: MM/DD HH:MM 0.5mL OK
         offset += snprintf(historyText + offset, sizeof(historyText) - offset,
-                           "\n%02d/%02d %02d:%02d %.1fmL %s",
-                           timeinfo->tm_mon + 1, timeinfo->tm_mday,
+                           "\n%02d:%02d %.1fmL %s",
                            timeinfo->tm_hour, timeinfo->tm_min,
-                           history[i].volume,
-                           history[i].success ? "OK" : "X");
+                           todayDoses[i].volume,
+                           todayDoses[i].success ? "OK" : "X");
+      }
+      
+      if (todayCount > 3) {
+        offset += snprintf(historyText + offset, sizeof(historyText) - offset,
+                           "\n...+%d more", todayCount - 3);
       }
     }
     
@@ -401,7 +462,7 @@ void runMenuSelection()
     bool selecting = true;
     while (selecting) {
       char buffer[64];
-      snprintf(buffer, sizeof(buffer), "Profile: %s\n%.0f steps/sec\nMenu=OK Enable=Cancel", 
+      snprintf(buffer, sizeof(buffer), "Profile: %s\n%.0f steps/sec\nEnable=OK Menu=Cancel", 
                profileNames[profile], pump.getProfileSpeed(profile));
       display.showText(buffer);
       delay(100);
@@ -412,13 +473,13 @@ void runMenuSelection()
       if (pressButtonDown()) {
         profile = (profile == 0) ? 2 : profile - 1;
       }
-      if (pressButtonMenu()) {
+      if (pressButtonEnable()) {  // SWAPPED: Enable confirms
         pump.setSpeedProfile(profile);
         display.showText("Profile Set");
-        delay(1000);
+        delay(800);
         selecting = false;
       }
-      if (pressButtonEnable()) {
+      if (pressButtonMenu()) {  // SWAPPED: Menu cancels
         display.showText("Cancelled");
         delay(500);
         selecting = false;
@@ -451,22 +512,18 @@ void runMenuSelection()
         pump.setProfileSpeed(profile, speed);
       }
       if (pressButtonDown()) {
-        speed = max(speed - 1000.0f, 1000.0f);
+        speed = constrain(speed - 1000.0f, 1000.0f, 50000.0f);
         pump.setProfileSpeed(profile, speed);
       }
       if (pressButtonMenu()) {
-        // Move to next profile
+        // Move to next profile (don't auto-exit on wrap)
         profile = (profile + 1) % 3;
-        if (profile == 0) {
-          // Wrapped around, exit
-          display.showText("Profiles Saved");
-          delay(1000);
-          editing = false;
-        }
+        display.showText("Next profile");
+        delay(300);
       }
       if (pressButtonEnable()) {
         display.showText("Profiles Saved");
-        delay(1000);
+        delay(500);
         editing = false;
       }
       delay(100);
